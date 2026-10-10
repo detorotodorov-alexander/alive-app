@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#05060a">
+<meta name="theme-color" content="#030a10">
 <title>Alive v3</title>
 <script src="config.js"></script>
 <script src="pipeline.js"></script>
@@ -18,14 +18,15 @@
   }
   *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;background:var(--bg);color:var(--ink);
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;touch-action:manipulation}
-  body{display:grid;place-items:center}
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;touch-action:manipulation;
+    overscroll-behavior:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{position:fixed;inset:0}
 
   /* Galaxy S24 Ultra viewport: 412 x 915 CSS px (19.5:9). Fills a real phone, letterboxes elsewhere. */
+  /* A fixed-size container: width and height are both explicit (JS refines them from the visual viewport), so nothing can stretch it. */
   #phone{
-    position:relative; overflow:hidden; background:#000;
-    aspect-ratio:412/915;
-    width:min(100vw, calc(100dvh * 412 / 915));
+    position:absolute; left:50%; top:50%; translate:-50% -50%; overflow:hidden; background:#000;
+    --pw:min(100vw, calc(100svh * 412 / 915)); width:var(--pw); height:calc(var(--pw) * 915 / 412);
     container-type:size;
   }
   @media (min-width:600px){ #phone{border-radius:6cqw;box-shadow:0 0 0 2px #1b1f2b,0 30px 80px #000a} }
@@ -101,56 +102,56 @@
   .pane label{display:block;font-size:3.4cqw;color:var(--dim);margin:3cqw 0 1.4cqw}
   .pane input{width:100%;background:#151a27;border:1px solid var(--line);border-radius:3cqw;padding:3.2cqw;color:var(--ink);font-size:4cqw}
   .pane small{display:block;color:var(--dim);font-size:3.2cqw;line-height:1.45;margin:2cqw 0 4cqw}
-  .toast{position:absolute;left:50%;top:18cqw;transform:translate(-50%,-4cqw);background:#111623ee;border:1px solid var(--line);
+  .toast{position:absolute;left:50%;top:18cqw;transform:translate(-50%,-4cqw);background:#0d1d29ee;border:1px solid var(--line);
     padding:2.6cqw 5cqw;border-radius:99px;font-size:3.6cqw;opacity:0;pointer-events:none;transition:.3s;z-index:20;white-space:nowrap}
   .toast.on{opacity:1;transform:translate(-50%,0)}
 
   /* ===== Warm / cinematic theme (overrides above) ===== */
-  :root{--bg:#0a0905;--ink:#f3ecdc;--dim:#9a9078;--line:rgba(243,236,220,.12);
-    --glass:rgba(24,20,12,.55);--calm:#e8c48a;--warm:#ff9a4a;--violet:#c98a52}
+  :root{--bg:#030a10;--ink:#eaf3f2;--dim:#85a3ae;--line:rgba(190,225,235,.14);
+    --glass:rgba(8,22,33,.55);--calm:#ffbf47;--warm:#ff8a2a;--violet:#2f7bff}
   html,body{font-family:"Lora",Georgia,"Times New Roman",serif}
   button,input{font-family:inherit}
-  #photo{position:absolute;inset:0;background:#0b0a06}
+  #photo{position:absolute;inset:0;background:#040d14}
   #gl{mix-blend-mode:screen}
   #vig{position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(120% 80% at 50% 38%,transparent 35%,rgba(5,4,2,.75) 100%),
-               linear-gradient(to bottom,rgba(8,7,3,.55),transparent 22%,transparent 60%,rgba(8,7,3,.85))}
+    background:radial-gradient(120% 80% at 50% 38%,transparent 35%,rgba(2,8,14,.75) 100%),
+               linear-gradient(to bottom,rgba(2,8,14,.55),transparent 22%,transparent 60%,rgba(2,8,14,.85))}
   #grain{position:absolute;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
-  #fallback{background:radial-gradient(circle at 50% 40%,#7a4a1c 0,#241608 32%,#0a0905 70%)}
+  #fallback{background:radial-gradient(circle at 50% 40%,#0c4a7a 0,#06182a 34%,#030a10 70%)}
   .logo{font-weight:500}
   .logo i{font-style:italic;color:var(--calm)}
   #v-record{justify-content:space-between;align-items:stretch;text-align:left}
   .status{margin-top:6cqw;font-size:3.5cqw;color:var(--calm);letter-spacing:.22em}
   .prompt{margin-top:2cqw;font-size:10.5cqw;line-height:1.08;font-weight:400;letter-spacing:-.01em;min-height:34cqw;padding:0}
-  .sub{margin-top:3cqw;font-size:4cqw;line-height:1.5;color:#cdc3aa;max-width:78%}
-  .live{background:rgba(20,16,9,.5);color:#e6dcc2;font-style:italic}
+  .sub{margin-top:3cqw;font-size:4cqw;line-height:1.5;color:#bcd6dd;max-width:78%}
+  .live{background:rgba(20,16,9,.5);color:#d8ecef;font-style:italic}
   .rec-wrap{padding-bottom:4cqw}
-  #rec{color:#1a0f04;background:linear-gradient(145deg,#f6dca8,#c98a52);
-    box-shadow:0 0 0 1.2cqw rgba(232,196,138,.16),0 2cqw 8cqw rgba(232,170,90,.35)}
-  #rec .dot{background:#1a0f04}
+  #rec{color:#021018;background:linear-gradient(145deg,#6fb4ff,#2457e6);
+    box-shadow:0 0 0 1.2cqw rgba(63,140,255,.2),0 2cqw 8cqw rgba(47,123,255,.4)}
+  #rec .dot{background:#02101c}
   #rec.on{background:linear-gradient(145deg,#ffb27a,#e2552a);box-shadow:0 0 0 1.4cqw rgba(255,138,76,.22),0 2cqw 9cqw rgba(255,107,61,.5)}
   h2{font-size:9cqw;font-weight:400;margin:3cqw 0 4cqw;letter-spacing:-.01em}
   .card h3{font-size:3.2cqw;letter-spacing:.2em;font-weight:500}
-  .btn{background:linear-gradient(135deg,#f6dca8,#c98a52);color:#1a0f04}
+  .btn{background:linear-gradient(135deg,#ffd873,#ff8a2a);color:#1a0f04}
   .btn.ghost{background:var(--glass);color:var(--ink)}
-  .chip{background:rgba(232,196,138,.12);border-color:rgba(232,196,138,.35)}
-  #sheet .pane{background:#100d07}
-  .pane input{background:#17130b}
-  .toast{background:#17130bee}
+  .chip{background:rgba(255,191,71,.12);border-color:rgba(255,191,71,.35)}
+  #sheet .pane{background:#07141d}
+  .pane input{background:#0d1d29}
+  .toast{background:#0d1d29ee}
   /* straight edges, like the S24 Ultra's flat display */
   @media (min-width:600px){ #phone{border-radius:0} }
   .row{display:flex;align-items:center;justify-content:space-between;gap:3cqw;margin:3cqw 0 1cqw;font-size:4cqw}
-  .row input[type=checkbox]{width:6cqw;height:6cqw;accent-color:#c98a52}
+  .row input[type=checkbox]{width:6cqw;height:6cqw;accent-color:#ff8a2a}
   .cap{display:flex;align-items:center;justify-content:center;gap:2cqw;margin-bottom:1cqw}
   .cap button{background:none;border:1px solid var(--line);color:var(--dim);border-radius:99px;padding:1.6cqw 3.6cqw;font-size:3.4cqw}
-  .cap button.on{color:var(--calm);border-color:rgba(232,196,138,.5)}
-  .cap input{background:#17130b;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.4cqw 2.4cqw;font-size:3.4cqw;color-scheme:dark}
+  .cap button.on{color:var(--calm);border-color:rgba(255,191,71,.5)}
+  .cap input{background:#0d1d29;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.4cqw 2.4cqw;font-size:3.4cqw;color-scheme:dark}
   .cap input[hidden]{display:none}
   button.chip{color:var(--ink);font-family:inherit;cursor:pointer}
-  button.chip.p{background:rgba(232,196,138,.16)} button.chip.w{background:rgba(255,154,74,.14);border-color:rgba(255,154,74,.4)}
-  button.chip.m{background:rgba(160,200,140,.12);border-color:rgba(160,200,140,.4)}
-  .pts{padding-left:4.5cqw;margin:0 0 2.4cqw;font-size:4cqw;line-height:1.45;color:#eadfc4}
+  button.chip.p{background:rgba(255,191,71,.16)} button.chip.w{background:rgba(255,138,42,.14);border-color:rgba(255,138,42,.4)}
+  button.chip.m{background:rgba(31,208,138,.14);border-color:rgba(31,208,138,.45)}
+  .pts{padding-left:4.5cqw;margin:0 0 2.4cqw;font-size:4cqw;line-height:1.45;color:#e0eff1}
   .pts li{margin-bottom:1cqw}
   .full{font-size:3.5cqw!important;color:var(--dim)!important;margin-bottom:2.4cqw}
   .sealed{display:flex;align-items:center;gap:3cqw;color:var(--dim);font-style:italic;font-size:4cqw}
@@ -166,14 +167,6 @@
   #entries .empty{margin:12cqw 0}
 
   /* The web: big, centred on screen, under the title text. Its own caption and colour scale are hidden (REMOVED.md). */
-  #webLayer,#timeline{transition:opacity .45s ease,visibility .45s}
-  #webLayer{position:absolute;left:0;right:0;top:50%;translate:0 -50%;z-index:0;padding:0 2cqw}
-  #webLayer .hub-title,#webLayer .hub-sub,#web .legend.scale{display:none}
-  #web{margin:0}
-  #web text{paint-order:stroke;stroke:rgba(5,4,2,.6);stroke-width:2.4px;stroke-linejoin:round}
-  /* view switch: data-view="net" shows the web, "time" shows the timeline */
-  #phone[data-view="time"] #webLayer{opacity:0;visibility:hidden;pointer-events:none}
-  #phone:not([data-view="time"]) #timeline{opacity:0;visibility:hidden;pointer-events:none}
 
   /* Hidden for now (see REMOVED.md): patterns/insights group, the time-capsule switch and its note, the logo and settings gear.
      Delete a selector here to bring that piece back. Settings is still reachable: press and hold the title. */
@@ -181,18 +174,18 @@
   .topbar{position:absolute;left:0;right:0;top:0;z-index:8;padding:calc(env(safe-area-inset-top) + 4cqw) 6cqw 0;pointer-events:none}
   .topbar > *{pointer-events:auto}
   .topbar::before{content:"";position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 20cqw);z-index:-1;
-    background:linear-gradient(to bottom,rgba(7,6,3,.92),transparent);opacity:var(--s, 0);pointer-events:none}
+    background:linear-gradient(to bottom,rgba(2,8,14,.92),transparent);opacity:var(--s, 0);pointer-events:none}
   /* ===== Task bar: Memories (cards) | Record | Web / Timeline switch ===== */
   .dock{position:absolute;left:0;right:0;bottom:0;z-index:6;pointer-events:none;
     padding:12cqw 4cqw calc(env(safe-area-inset-bottom) + 4cqw);
-    background:linear-gradient(to top,rgba(7,6,3,.7) 40%,rgba(7,6,3,0))}
+    background:linear-gradient(to top,rgba(2,8,14,.7) 40%,rgba(2,8,14,0))}
   .dock > *{pointer-events:auto}
   .dock .live{margin-bottom:3cqw}
   .armed{text-align:center;font-size:3.4cqw;font-style:italic;color:var(--calm);margin-bottom:2cqw}
   .armed[hidden]{display:none}
   .taskbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:2cqw;
     padding:2.4cqw 3cqw;border-radius:8cqw;corner-shape:squircle;border:1px solid var(--line);
-    background:rgba(20,17,11,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    background:rgba(6,19,29,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
     box-shadow:0 2cqw 8cqw rgba(0,0,0,.5)}
   .tb{position:relative;display:flex;flex-direction:column;align-items:center;gap:.8cqw;background:none;border:0;
     color:var(--dim);font-size:2.9cqw;letter-spacing:.06em;padding:1cqw 0;transition:color .2s}
@@ -207,7 +200,7 @@
   .taskbar .timer{position:absolute;bottom:-4.4cqw;height:auto;font-size:3.2cqw}
 
   /* Sheets (memories and reader). The home screen recedes behind them. */
-  #webLayer,#timeline,.dock,#gl,#hero,.topbar{transition:opacity .45s ease,visibility .45s,scale .6s cubic-bezier(.2,.8,.2,1),translate .6s cubic-bezier(.2,.8,.2,1),filter .6s ease}
+  #timeline,.dock,#gl,#hero,.topbar{transition:opacity .45s ease,visibility .45s,scale .6s cubic-bezier(.2,.8,.2,1),translate .6s cubic-bezier(.2,.8,.2,1),filter .6s ease}
   #phone.sheeted #gl{filter:brightness(.5)}
   #hubScrim{position:absolute;inset:0;z-index:12;pointer-events:none}
   #phone.sheeted #hubScrim{pointer-events:auto}
@@ -215,32 +208,32 @@
   #phone.sheeted #hubScrim{background:rgba(0,0,0,.3)}
   #hub,#reader,#cardsSheet{position:absolute;left:3cqw;right:3cqw;bottom:3cqw;height:82cqh;z-index:14;border-radius:9cqw;overflow:hidden;
     display:flex;flex-direction:column;transform:translateY(112%);transition:transform .65s cubic-bezier(.2,.8,.2,1);
-    background:radial-gradient(120% 72% at 50% 38%,#0a0806 26%,#3a3220 60%,#7d6c3e 100%);
+    background:radial-gradient(120% 72% at 50% 38%,#030a10 26%,#0b2b46 62%,#0f6a74 100%);
     box-shadow:0 -2cqw 10cqw rgba(0,0,0,.55)}
   #hub.on,#reader.on,#cardsSheet.on{transform:none}
   #reader{z-index:15}                                              /* the transcript opens on top of the memories sheet */
   .grab{flex:none;padding:3.2cqw 0 2cqw;touch-action:none;cursor:grab}
-  .grab i{display:block;width:14cqw;height:1.2cqw;border-radius:9px;background:rgba(243,236,220,.42);margin:0 auto}
+  .grab i{display:block;width:14cqw;height:1.2cqw;border-radius:9px;background:rgba(200,230,240,.42);margin:0 auto}
   .hub-scroll{flex:1;overflow-y:auto;padding:0 6cqw 6cqw;scrollbar-width:none;overscroll-behavior:contain}
   .hub-scroll::-webkit-scrollbar{display:none}
   .hub-title{text-align:center;font-size:6.6cqw;margin-top:1cqw}
-  .hub-sub{text-align:center;color:#d6cba8;font-size:3.5cqw;line-height:1.45;margin:1.5cqw 5cqw 0}
+  .hub-sub{text-align:center;color:#bcd6dd;font-size:3.5cqw;line-height:1.45;margin:1.5cqw 5cqw 0}
   #web{margin:1cqw -2cqw 2cqw}
   #web svg{width:100%;height:auto;display:block;overflow:visible}
-  #web text{font-family:inherit;font-size:9.5px;fill:#efe6cf;pointer-events:none}
+  #web text{font-family:inherit;font-size:9.5px;fill:#e6f3f4;pointer-events:none}
   #web .nd{cursor:pointer}
-  .legend{display:flex;align-items:center;justify-content:center;gap:2.4cqw;font-size:3cqw;color:#bdb18f;margin-bottom:5cqw}
-  .legend i{display:block;width:26cqw;height:1.4cqw;border-radius:9px;background:linear-gradient(90deg,#8a8366,#e0a35a,#fff0d0)}
+  .legend{display:flex;align-items:center;justify-content:center;gap:2.4cqw;font-size:3cqw;color:#8fb0ba;margin-bottom:5cqw}
+  .legend i{display:block;width:26cqw;height:1.4cqw;border-radius:9px;background:linear-gradient(90deg,#2f6f86,#e0a35a,#fff0d0)}
   .hub-h{font-size:3.2cqw;letter-spacing:.2em;text-transform:uppercase;color:var(--calm);font-weight:500;margin:2cqw 0 3cqw}
   .hub-sec .btn{margin-bottom:4cqw}
   .hub-foot{flex:none;padding:3cqw 4cqw calc(env(safe-area-inset-bottom) + 4cqw);
     background:linear-gradient(to top,rgba(10,8,6,.9) 55%,transparent)}
-  .capdate{display:flex;align-items:center;justify-content:space-between;color:#d6cba8;font-size:3.6cqw;margin:0 3cqw 2.4cqw}
+  .capdate{display:flex;align-items:center;justify-content:space-between;color:#bcd6dd;font-size:3.6cqw;margin:0 3cqw 2.4cqw}
   .capdate[hidden]{display:none}
-  .capdate input{background:#17130b;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.6cqw 2.6cqw;font-size:3.6cqw;color-scheme:dark}
+  .capdate input{background:#0d1d29;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.6cqw 2.6cqw;font-size:3.6cqw;color-scheme:dark}
   .capdate input[hidden]{display:none}
   .pill{width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.8cqw 1.8cqw 1.8cqw 6cqw;
-    border-radius:99px;border:0;background:rgba(14,12,8,.8);color:var(--ink);font-size:3.9cqw;
+    border-radius:99px;border:0;background:rgba(5,15,24,.8);color:var(--ink);font-size:3.9cqw;
     backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
   .pill .plus{flex:none;width:9.4cqw;height:9.4cqw;border-radius:50%;background:#f6efe0;color:#1a0f04;display:grid;place-items:center;font-size:5.4cqw;line-height:1}
   .pill.on .plus{background:#ffb27a}
@@ -248,19 +241,20 @@
   /* ===== Recording cards: soft gradient squircles with a dark glowing core, like the widget reference ===== */
   .egrid{display:grid;grid-template-columns:1fr 1fr;gap:3cqw}
   .wcard{position:relative;isolation:isolate;overflow:hidden;cursor:pointer;color:#fff;
-    aspect-ratio:1 / .538;padding:3cqw 3.4cqw;border-radius:8.5cqw;corner-shape:squircle;
+    aspect-ratio:1 / .538;padding:3cqw 3.6cqw;border-radius:10cqw;corner-shape:superellipse(2.8);
     display:flex;flex-direction:column;justify-content:space-between;
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none;
-    --c1:#8fb09f;--c2:#6c8a7b;--blob:#05070a;--bx:46%;--by:62%}
+    --c1:#1fd08a;--c2:#07744f;--blob:#02070a;--bx:46%;--by:62%}
   .wcard::before{content:"";position:absolute;inset:0;z-index:-1;
     background:radial-gradient(ellipse 64% 54% at var(--bx) var(--by),var(--blob) 0%,transparent 100%),
                linear-gradient(172deg,var(--c1),var(--c2))}
-  .wcard.wide{grid-column:1 / -1;aspect-ratio:auto;height:22.1cqw;border-radius:7cqw}
-  .wcard.sage{--c1:#93b4a2;--c2:#6a887a}
-  .wcard.rose{--c1:#f3add3;--c2:#c4538f;--blob:#4d0b33}
-  .wcard.cobalt{--c1:#4a67e6;--c2:#1b2e98;--blob:#02030a}
-  .wcard.ember{--c1:#e8703f;--c2:#c04a1f;--blob:#2c47dc;--bx:76%;--by:66%}
-  .wcard.plum{--c1:#bd6c7c;--c2:#684862;--blob:#100a10}
+  .wcard.wide{grid-column:1 / -1;aspect-ratio:auto;height:22.1cqw;border-radius:9cqw}
+  .wimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;opacity:.5}
+  .wcard.sage{--c1:#1fd08a;--c2:#07744f;--blob:#012a1f}
+  .wcard.rose{--c1:#3fa9ff;--c2:#0b55b8;--blob:#01204a}
+  .wcard.cobalt{--c1:#3563ff;--c2:#0f1f9c;--blob:#02030a}
+  .wcard.ember{--c1:#ffb42e;--c2:#f0661c;--blob:#0d38c8;--bx:76%;--by:66%}
+  .wcard.plum{--c1:#18c4bd;--c2:#07616d;--blob:#021a24}
   .wcard.wide::before{background:radial-gradient(ellipse 58% 70% at 30% 70%,var(--blob) 0%,transparent 100%),linear-gradient(176deg,var(--c1),var(--c2))}
   .wl{display:flex;align-items:baseline;gap:1.6cqw;white-space:nowrap;overflow:hidden}
   .wl b{font-size:2.5cqw;letter-spacing:.16em;text-transform:uppercase;font-weight:600;opacity:.95}
@@ -271,7 +265,7 @@
   .ui{position:relative;height:4.8cqw;display:flex;align-items:center}
   .mk2{position:absolute;top:.2cqw;bottom:.2cqw;width:0;border-left:.45cqw solid #f2ee6a;transform:translateX(-50%);pointer-events:none}
   .mk2::before{content:"";position:absolute;top:-.5cqw;left:-1.4cqw;border:1.4cqw solid transparent;border-top:2cqw solid #f2ee6a;border-bottom:0}
-  .ui-mood .trk{flex:1;height:2.2cqw;border-radius:9px;background:linear-gradient(90deg,rgba(255,255,255,.16),rgba(255,255,255,.5) 55%,#ffd9aa)}
+  .ui-mood .trk{flex:1;height:2.2cqw;border-radius:9px;background:linear-gradient(90deg,rgba(255,255,255,.16),rgba(255,255,255,.5) 55%,#ffd873)}
   .ui-people .av{width:4.8cqw;height:4.8cqw;border-radius:50%;display:grid;place-items:center;font-size:2.4cqw;font-weight:600;
     background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.55);backdrop-filter:blur(2px)}
   .ui-people .av + .av{margin-left:-2.2cqw}
@@ -303,33 +297,41 @@
   .mk::before{content:"";position:absolute;top:-.6cqw;left:-1.45cqw;border:1.45cqw solid transparent;border-top:2.1cqw solid #f2ee6a;border-bottom:0}
   .wcard.cur .mk{opacity:1}
   .ticks.big{height:19cqw;margin:4cqw 0 2cqw;gap:.45cqw;cursor:pointer}
-  .ticks.big i{max-width:1.4cqw;background:rgba(243,236,220,.5)}
+  .ticks.big i{max-width:1.4cqw;background:rgba(200,230,240,.5)}
   .ticks.big i.on{background:#f2ee6a}
   .ticks.big .mk{top:-2.2cqw;bottom:-2.2cqw}
   #readTicks.cur .mk{opacity:1}
   /* reader */
-  .rctl{display:flex;align-items:center;gap:3cqw;margin-bottom:5cqw;font-size:3.7cqw;color:#d6cba8;font-variant-numeric:tabular-nums}
+  .rctl{display:flex;align-items:center;gap:3cqw;margin-bottom:5cqw;font-size:3.7cqw;color:#bcd6dd;font-variant-numeric:tabular-nums}
   .rctl .wplay{position:static;width:11cqw;height:11cqw;inset:auto;font-size:3.6cqw;padding-left:.4cqw}
-  .trans{font-size:4.5cqw;line-height:1.7;color:#a99f84}
+  .trans{font-size:4.5cqw;line-height:1.7;color:#8fb0ba}
   .tw{transition:color .3s,text-shadow .3s;cursor:pointer}
   .tw.rd{color:#f4ecd8}
   .tw.now{color:#ffe08a;text-shadow:0 0 14px rgba(255,214,120,.5)}
-  .trans.plain{color:#efe6cf}
-  .dimp{color:#a99f84;font-style:italic}
+  .trans.plain{color:#e6f3f4}
+  .dimp{color:#8fb0ba;font-style:italic}
   #readEcho{margin-top:5cqw}
   .echolink .ehead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.4cqw}
   .echolink .ehead em{font-size:3cqw;color:var(--dim);letter-spacing:.06em}
-  .echolink .eq{font-family:"Lora",Georgia,serif;font-size:3.7cqw;line-height:1.45;color:#e9dfc6}
+  .echolink .eq{font-family:"Lora",Georgia,serif;font-size:3.7cqw;line-height:1.45;color:#dcecef}
   .echolink .eq.now{margin-top:1.2cqw;color:#ffe9b0}
   .echolink{display:block}
   .echo{font-size:4.4cqw;line-height:1.6;color:#f4ecd8;margin-bottom:3cqw}
-  .echolink{display:flex;gap:3cqw;align-items:baseline;width:100%;text-align:left;background:rgba(243,236,220,.06);
-    border:1px solid var(--line);border-radius:4cqw;padding:3cqw 4cqw;margin-bottom:2cqw;color:#e9dfc6;font-size:3.6cqw}
+  .echolink{display:flex;gap:3cqw;align-items:baseline;width:100%;text-align:left;background:rgba(200,230,240,.06);
+    border:1px solid var(--line);border-radius:4cqw;padding:3cqw 4cqw;margin-bottom:2cqw;color:#dcecef;font-size:3.6cqw}
   .echolink b{flex:none;font-weight:500;color:var(--calm);font-size:3.3cqw;letter-spacing:.04em}
   #readPts{margin-top:5cqw}
-  #readPts .pts{color:#f1e7cd}
+  #readPts .pts{color:#e0eff1}
   .rtags{margin-top:1cqw}
   .rbtns{margin-top:5cqw}
+  .rimgs{display:flex;gap:2.4cqw;margin:3cqw 0 1cqw;overflow-x:auto;scrollbar-width:none}
+  .rimgs::-webkit-scrollbar{display:none}
+  .rimg{position:relative;flex:none;width:26cqw;height:26cqw;border-radius:6cqw;overflow:hidden;border:1px solid var(--line);background:rgba(6,19,29,.6)}
+  .rimg img{width:100%;height:100%;object-fit:cover;display:block}
+  .rimg button{position:absolute;top:1cqw;right:1cqw;width:6cqw;height:6cqw;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:3cqw}
+  .rimg.add{display:grid;place-items:center;border-style:dashed;color:var(--dim);font:3cqw/1.3 system-ui,sans-serif;text-align:center;cursor:pointer}
+  .rimg.add b{display:block;font-size:7cqw;font-weight:300;color:var(--calm)}
+  .tlthumb{width:13cqw;height:13cqw;border-radius:3.6cqw;object-fit:cover;margin-top:1.4cqw;border:1px solid var(--line)}
 
   /* Living type: every letter levitates on a phase-shifted wave while one warm gradient drifts through the whole line.
      JS (liven/place) splits text into letters and gives each its x-offset (--x) and the line width (--w),
@@ -338,7 +340,7 @@
   /* background-clip:text only paints inside the box, so pad it past the ascenders/descenders (and italic overhang),
      then cancel the padding with negative margins so layout is unchanged */
   .alive .l{display:inline-block;color:var(--calm);padding:.22em .06em;margin:-.22em -.06em;
-    background-image:linear-gradient(90deg,#f6e7c4,#e8c48a,#ff9a4a,#e9a6a0,#e8c48a,#f6e7c4);
+    background-image:linear-gradient(90deg,#ffe7a0,#ffc23d,#ff8a2a,#ffb13d,#ffd873,#ffe7a0);
     background-size:var(--w,300px) 100%;background-repeat:repeat-x;
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
     animation:lift 5.5s ease-in-out infinite alternate, drift 16s linear infinite;
@@ -353,7 +355,7 @@
   #timeline{position:absolute;left:0;right:0;z-index:2;top:calc(env(safe-area-inset-top) + 59cqw);bottom:30cqw;
     display:flex;flex-direction:column;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
   #tlLegend{flex:none;display:flex;justify-content:center;align-items:center;gap:1.6cqw;padding:0 4cqw 2.4cqw;flex-wrap:wrap}
-  #tlLegend button{display:flex;align-items:center;gap:1.4cqw;background:rgba(20,17,11,.6);border:1px solid var(--line);color:#e9dfc6;
+  #tlLegend button{display:flex;align-items:center;gap:1.4cqw;background:rgba(6,19,29,.6);border:1px solid var(--line);color:#dcecef;
     border-radius:99px;padding:1.2cqw 2.8cqw;font-size:2.9cqw;letter-spacing:.04em;transition:opacity .2s}
   #tlLegend button i{width:2.6cqw;height:2.6cqw;border-radius:50%;background:var(--c1)}
   #tlLegend button.off{opacity:.38}
@@ -365,9 +367,9 @@
   #tlScroll::-webkit-scrollbar{display:none}
   #tlList{position:relative;padding:3cqw 0 16cqw}
   #tlList::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;
-    background:linear-gradient(to bottom,transparent,rgba(243,236,220,.3) 4%,rgba(243,236,220,.3) 96%,transparent)}
+    background:linear-gradient(to bottom,transparent,rgba(200,230,240,.3) 4%,rgba(200,230,240,.3) 96%,transparent)}
   .tlmonth{position:relative;text-align:center;margin:1cqw 0 4cqw;font-size:2.7cqw;letter-spacing:.2em;text-transform:uppercase;color:var(--calm)}
-  .tlmonth span{background:#0a0905;padding:0 3cqw}
+  .tlmonth span{background:#030a10;padding:0 3cqw}
   .tlrow{display:grid;grid-template-columns:1fr 7cqw 1fr;align-items:center;margin-bottom:4.6cqw}
   .tlmid{display:grid;place-items:center}
   .tldot{width:3.4cqw;height:3.4cqw;border-radius:50%;background:var(--c1);box-shadow:0 0 0 1cqw rgba(255,255,255,.08),0 0 3cqw var(--c1)}
@@ -383,8 +385,8 @@
   .kp.t1{font-size:4cqw;font-weight:500;padding:3cqw 3.6cqw;border-radius:5cqw}
   .kp.t2{font-size:3.3cqw;padding:2.2cqw 3cqw;border-radius:4cqw}
   .kp.t3{font-size:2.8cqw;opacity:.88;padding:1.5cqw 2.4cqw;border-radius:3cqw}
-  .sage{--c1:#93b4a2;--c2:#6a887a} .rose{--c1:#f3add3;--c2:#c4538f} .cobalt{--c1:#4a67e6;--c2:#1b2e98}
-  .ember{--c1:#e8703f;--c2:#c04a1f} .plum{--c1:#bd6c7c;--c2:#684862}
+  .sage{--c1:#1fd08a;--c2:#07744f} .rose{--c1:#3fa9ff;--c2:#0b55b8} .cobalt{--c1:#3563ff;--c2:#0f1f9c}
+  .ember{--c1:#ffb42e;--c2:#f0661c} .plum{--c1:#18c4bd;--c2:#07616d}
   .tlempty{color:var(--dim);text-align:center;font-style:italic;margin-top:12cqw;font-size:3.6cqw}
 
   /* ===== v3: pages. Home (title, three loose cards, search) | Recording | Timeline (web or timeline) ===== */
@@ -402,25 +404,45 @@
   /* Home: the three loose cards float below the title, slightly rotated, like widgets dropped on a table */
   #cards3{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top) + 64cqw);height:112cqw;transition:opacity .3s}
   .lcard{position:absolute;border:0;text-align:left;color:#fff;cursor:pointer;isolation:isolate;overflow:hidden;
-    border-radius:8cqw;corner-shape:squircle;padding:4.6cqw;display:flex;flex-direction:column;justify-content:space-between;
+    border-radius:13cqw;corner-shape:superellipse(2.8);padding:5.4cqw;display:flex;flex-direction:column;justify-content:space-between;
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-shadow:0 3cqw 9cqw rgba(0,0,0,.5);
     animation:floaty 8s ease-in-out infinite}
   .lcard::before{content:"";position:absolute;inset:0;z-index:-1;
     background:radial-gradient(ellipse 62% 54% at var(--bx,40%) var(--by,62%),var(--blob,#05070a) 0%,transparent 100%),linear-gradient(165deg,var(--c1),var(--c2))}
   .lcard:active{scale:.97}
-  .lcard.ember{--blob:#2c47dc;--bx:78%;--by:70%} .lcard.cobalt{--blob:#02030a} .lcard.sage{--blob:#05070a} .lcard.rose{--blob:#4d0b33} .lcard.plum{--blob:#100a10}
+  .lcard.ember{--blob:#0d38c8;--bx:78%;--by:70%} .lcard.cobalt{--blob:#02030a} .lcard.sage{--blob:#012a1f} .lcard.rose{--blob:#01204a} .lcard.plum{--blob:#021a24}
   .lcard .lt{font-size:3.4cqw;letter-spacing:.04em;opacity:.92}
   .lcard .lbig{font-size:8.4cqw;font-weight:300;letter-spacing:-.02em;line-height:1.05}
   .lcard .lsub{font-size:3.3cqw;opacity:.88;line-height:1.35}
   .lcard .go{align-self:flex-start;font-size:3.1cqw;font-weight:600;background:rgba(255,255,255,.92);color:#1a0f04;border-radius:99px;padding:1.5cqw 3.4cqw}
   .lcard svg{width:9cqw;height:9cqw;stroke:#fff;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
   /* Think aloud: a big round button. The whole card is the button; no slogans. */
-  .lcard.think{left:3cqw;top:0;width:60cqw;height:60cqw;border-radius:50%;corner-shape:round;padding:0;align-items:center;justify-content:center;gap:2.4cqw;rotate:-2deg;
-    box-shadow:0 3cqw 10cqw rgba(0,0,0,.5),0 0 12cqw rgba(238,122,68,.28)}
-  .lcard.think svg{width:15cqw;height:15cqw;stroke-width:1.2}
-  .lcard.think .lt{font-size:4.6cqw;font-weight:500;letter-spacing:.04em;opacity:1}
-  .lcard.tl{right:5cqw;top:13cqw;width:36cqw;height:48cqw;rotate:3.5deg;animation-delay:-2.6s}
-  .lcard.feat{left:10cqw;right:6cqw;top:66cqw;height:42cqw;rotate:-1.4deg;animation-delay:-5s}
+  .lcard.think{right:4cqw;top:8cqw;width:46cqw;height:46cqw;border-radius:50%;corner-shape:round;padding:0;align-items:center;justify-content:center;gap:2cqw;rotate:2deg;
+    box-shadow:0 3cqw 10cqw rgba(0,0,0,.5),0 0 12cqw rgba(255,150,40,.35)}
+  .lcard.think svg{width:12cqw;height:12cqw;stroke-width:1.2}
+  .lcard.think .lt{font-size:4.2cqw;font-weight:500;letter-spacing:.04em;opacity:1}
+  .lcard.think .tt{font:300 7.4cqw/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+  .lcard.think .recdot{display:none}
+  /* recording in progress: the circle says so, pulses, and a tap takes you back to the recording page */
+  .lcard.think.rec{--c1:#ff5a3c;--c2:#c2200f;--blob:#4a0a05;animation:none}
+  .lcard.think.rec svg{display:none}
+  .lcard.think.rec .recdot{display:block;width:5cqw;height:5cqw;border-radius:50%;background:#fff;animation:blink 1s ease-in-out infinite}
+  .lcard.think.rec::after{content:"";position:absolute;inset:0;border-radius:50%;border:.7cqw solid rgba(255,255,255,.75);animation:ripple 1.8s ease-out infinite}
+  @keyframes blink{50%{opacity:.25}}
+  @keyframes ripple{from{transform:scale(1);opacity:.9}to{transform:scale(1.28);opacity:0}}
+  .lcard.tl{left:5cqw;top:0;width:44cqw;height:60cqw;rotate:-2.5deg;animation-delay:-2.6s}
+  .lcard.feat{left:7cqw;right:7cqw;top:67cqw;height:46cqw;rotate:-1deg;animation-delay:-5s}
+  .lcard.feat .fimg{position:absolute;right:0;top:0;bottom:0;width:38%;height:100%;object-fit:cover;z-index:-1;
+    -webkit-mask-image:linear-gradient(to right,transparent,#000 45%);mask-image:linear-gradient(to right,transparent,#000 45%)}
+  .lcard.feat .fimg[hidden]{display:none}
+  .lcard.feat.hasimg .lq{max-width:62%}
+  .lbusy{display:flex;align-items:center;gap:3cqw;margin:2cqw 0}
+  .lbusy[hidden]{display:none}
+  .lbusy b{font:300 8cqw/1 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  .spin{width:7cqw;height:7cqw;border-radius:50%;border:.9cqw solid rgba(255,255,255,.28);border-top-color:#ffd873;animation:spin .9s linear infinite}
+  @keyframes spin{to{rotate:360deg}}
+  .lcard.busy::before{background-size:100% 100%,100% 100%;animation:shimmer 2.4s ease-in-out infinite}
+  @keyframes shimmer{50%{filter:brightness(1.35)}}
   /* Timeline preview: the real timeline in miniature (a spine, the latest memories as dots, key points as small bars sized by importance) */
   .tlmini{position:relative;flex:1;display:flex;flex-direction:column;justify-content:space-evenly;margin-top:2.4cqw}
   .tlmini::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4)}
@@ -436,19 +458,19 @@
 
   /* Home: universal search, at the very bottom */
   #searchBar{position:absolute;left:5cqw;right:5cqw;bottom:calc(env(safe-area-inset-bottom) + 6cqw);height:14cqw;display:flex;align-items:center;gap:3cqw;
-    padding:0 4.4cqw;border-radius:99px;background:rgba(20,17,11,.78);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    padding:0 4.4cqw;border-radius:99px;background:rgba(6,19,29,.78);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     box-shadow:0 2cqw 8cqw rgba(0,0,0,.45);z-index:6}
   #searchBar svg{flex:none;width:5.4cqw;height:5.4cqw;stroke:var(--calm);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
   #q{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:4.1cqw "Lora",Georgia,serif}
   #q::placeholder{color:var(--dim)}
   #qClear{flex:none;background:none;border:0;color:var(--dim);font-size:4.4cqw}
   #searchRes{position:absolute;left:4cqw;right:4cqw;bottom:calc(env(safe-area-inset-bottom) + 23cqw);max-height:62cqh;overflow-y:auto;z-index:5;
-    border-radius:6cqw;background:rgba(14,12,8,.94);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border-radius:6cqw;background:rgba(5,15,24,.94);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     padding:3cqw;scrollbar-width:none}
   #searchRes::-webkit-scrollbar{display:none}
   #searchRes[hidden]{display:none}
   .sres-h{font-size:3cqw;letter-spacing:.14em;text-transform:uppercase;color:var(--calm);margin:1cqw 2cqw 2.4cqw}
-  .sres{display:block;width:100%;text-align:left;background:rgba(243,236,220,.05);border:1px solid var(--line);border-radius:4cqw;padding:3cqw 3.6cqw;margin-bottom:2cqw;color:#e9dfc6}
+  .sres{display:block;width:100%;text-align:left;background:rgba(200,230,240,.05);border:1px solid var(--line);border-radius:4cqw;padding:3cqw 3.6cqw;margin-bottom:2cqw;color:#dcecef}
   .sres .sh{display:flex;align-items:center;gap:2cqw;margin-bottom:1.2cqw;font:500 3cqw system-ui,sans-serif;color:var(--dim);letter-spacing:.04em}
   .sres .sh i{width:2.6cqw;height:2.6cqw;border-radius:50%;background:var(--c1)}
   .sres .sq{font-size:3.7cqw;line-height:1.45}
@@ -464,25 +486,33 @@
 
   /* Recording page */
   #recPage{display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(env(safe-area-inset-top) + 8cqw) 6cqw calc(env(safe-area-inset-bottom) + 8cqw)}
-  .recnote{font-size:3.4cqw;color:#d6cba8;border:1px solid var(--line);background:rgba(20,17,11,.55);border-radius:99px;padding:2cqw 4.6cqw;
+  .recnote{font-size:3.4cqw;color:#bcd6dd;border:1px solid var(--line);background:rgba(6,19,29,.55);border-radius:99px;padding:2cqw 4.6cqw;
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
   .recorb{flex:none;margin:12cqw 0 7cqw;width:44cqw;height:44cqw;border-radius:50%;
-    background:radial-gradient(circle at 38% 32%,#ffe0b8,#ee7a44 52%,#7a2e12 100%);
+    background:radial-gradient(circle at 38% 32%,#ffe9b0,#ff8a2a 52%,#8a2f08 100%);
     box-shadow:0 0 calc(10cqw + var(--lvl, 0) * 16cqw) rgba(255,138,76,.42);scale:calc(1 + var(--lvl, 0) * .2);animation:orbglow 5s ease-in-out infinite}
   @keyframes orbglow{50%{filter:brightness(1.14)}}
-  .recstatus{font-size:3.4cqw;color:var(--calm);letter-spacing:.22em;text-transform:uppercase;min-height:5cqw}
+  .recstatus{display:inline-flex;align-items:center;gap:2.4cqw;font-size:3.6cqw;font-weight:600;color:#fff;letter-spacing:.2em;text-transform:uppercase;
+    background:#d9301c;border-radius:99px;padding:1.8cqw 4.6cqw;font-family:system-ui,sans-serif;box-shadow:0 0 6cqw rgba(255,70,40,.55)}
+  .recstatus i{width:2.6cqw;height:2.6cqw;border-radius:50%;background:#fff;animation:blink 1s ease-in-out infinite}
+  #phone:not(.recording) .recstatus{background:rgba(255,255,255,.12);box-shadow:none}
+  #phone:not(.recording) .recstatus i{animation:none;opacity:.5}
+  .recmin{position:absolute;left:5cqw;top:calc(env(safe-area-inset-top) + 6cqw);z-index:3}
+  .recorb::after{content:"";position:absolute;inset:0;border-radius:50%;border:.8cqw solid rgba(255,160,60,.7);animation:ripple 2.2s ease-out infinite;pointer-events:none}
+  .recorb{position:relative}
   #recPage .timer{font:300 13cqw/1 system-ui,sans-serif;color:var(--ink);height:auto;margin:1.6cqw 0 4cqw;letter-spacing:.02em}
   #recPage .live{margin-bottom:3cqw;max-height:20cqw}
   #recPage .armed{display:none}                                      /* the capsule button already shows the date */
-  .recq{width:100%;border:1px solid var(--line);background:rgba(20,17,11,.62);border-radius:6cqw;padding:4cqw 5cqw;margin-bottom:3cqw;
+  .recq{width:100%;border:1px solid var(--line);background:rgba(6,19,29,.62);border-radius:6cqw;padding:4cqw 5cqw;margin-bottom:3cqw;
     font:italic 4.5cqw/1.4 "Lora",Georgia,serif;color:#f4ecd8;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
   .recq[hidden],.reccap[hidden]{display:none}
   .reccap{display:flex;flex-wrap:wrap;gap:2cqw;justify-content:center;margin-bottom:3cqw}
-  .reccap button{background:rgba(20,17,11,.7);border:1px solid var(--line);color:#e9dfc6;border-radius:99px;padding:1.8cqw 3.8cqw;font-size:3.3cqw}
-  .reccap button.on{border-color:rgba(232,196,138,.7);color:var(--calm)}
-  .reccap input{background:#17130b;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.4cqw 2.4cqw;font-size:3.3cqw;color-scheme:dark}
+  .reccap button{background:rgba(6,19,29,.7);border:1px solid var(--line);color:#dcecef;border-radius:99px;padding:1.8cqw 3.8cqw;font-size:3.3cqw}
+  .reccap button.on{border-color:rgba(255,191,71,.7);color:var(--calm)}
+  .reccap input{background:#0d1d29;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.4cqw 2.4cqw;font-size:3.3cqw;color-scheme:dark}
+  .recnote{margin-top:10cqw}
   .recbtns{margin-top:auto;width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:3cqw}
-  #recPage #rec{width:20cqw;height:20cqw;margin-top:0}
+  #recPage #rec{width:20cqw;height:20cqw;margin-top:0;background:linear-gradient(145deg,#ff8a6a,#d9301c);box-shadow:0 0 0 1.4cqw rgba(255,90,60,.25),0 2cqw 8cqw rgba(217,48,28,.5)}
   #recPage #rec .dot{width:6cqw;height:6cqw}
   #recPage #rec.on .dot{width:6cqw;height:6cqw}
   .rbtn{display:flex;flex-direction:column;align-items:center;gap:1.2cqw;background:none;border:0;color:var(--dim);font-size:3cqw;letter-spacing:.05em;padding:1cqw 0}
@@ -491,7 +521,7 @@
 </style>
 </head>
 <body>
-<div id="phone" data-page="home">
+<div id="phone" data-page="home" data-view="time">
   <div id="photo"></div>
   <canvas id="gl"></canvas>
   <div id="fallback"></div>
@@ -508,17 +538,21 @@
       </div>
 
       <div id="cards3">
-        <button class="lcard think ember" id="cardThink" aria-label="Think aloud: start recording">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
-          <div class="lt">Think aloud</div>
-        </button>
         <button class="lcard tl cobalt" id="cardTl" aria-label="Open the timeline">
           <div class="lt">Timeline</div>
           <div class="tlmini" id="tlMini" aria-hidden="true"></div>
         </button>
-        <button class="lcard feat sage" id="cardFeat" aria-label="Featured memory">
-          <div class="lt" id="featLabel">Featured memory</div>
-          <div class="lq" id="featQuote">The moments that matter most will be featured here.</div>
+        <button class="lcard think ember" id="cardThink" aria-label="Think aloud: start recording">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+          <i class="recdot" aria-hidden="true"></i>
+          <div class="lt" id="thinkLbl">Think aloud</div>
+          <div class="tt" id="thinkTime" hidden>00:00</div>
+        </button>
+        <button class="lcard feat sage" id="cardFeat" aria-label="Last recording">
+          <img class="fimg" id="featImg" alt="" hidden>
+          <div class="lt" id="featLabel">Last recording</div>
+          <div class="lbusy" id="featBusy" hidden><i class="spin"></i><b id="featTime">0:00</b></div>
+          <div class="lq" id="featQuote">Your last recording will show up here.</div>
         </button>
       </div>
 
@@ -536,16 +570,9 @@
       <button class="icon-btn" id="tlBack" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="pgtitle" id="tlTitle">Timeline</div>
       <div class="pgacts">
-        <button class="icon-btn" id="viewBtn" aria-label="Switch between web and timeline"><svg id="viewIcon" viewBox="0 0 24 24" aria-hidden="true"></svg><span class="sr" id="viewLabel">Timeline</span></button>
         <button class="icon-btn" id="cardsBtn" aria-label="Open memories"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2.2"/></svg><b class="cnt" id="cardsCount" hidden></b></button>
       </div>
     </header>
-
-    <div id="webLayer">
-      <div class="hub-title" id="hubTitle">Your web</div>
-      <div class="hub-sub">The words and labels your days keep returning to. Brighter means more.</div>
-      <div id="web"></div>
-    </div>
 
     <div id="timeline" aria-label="Timeline">
       <div id="tlLegend"></div>
@@ -573,9 +600,10 @@
 
     <!-- RECORDING PAGE: opens by itself when you start; time so far, save as a time capsule, a question to get you going -->
     <section class="pg" id="recPage" aria-label="Recording">
+      <button class="icon-btn recmin" id="recMin" aria-label="Minimize and keep recording"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="recnote" id="recNote">You can leave the app. We keep listening.</div>
       <div class="recorb" id="recOrb" aria-hidden="true"></div>
-      <div class="recstatus" id="recStatus">Listening</div>
+      <div class="recstatus" id="recStatus"><i></i><span id="recStatusTxt">Recording</span></div>
       <div class="timer" id="timer">00:00</div>
       <div class="live" id="live"></div>
       <div class="armed" id="armed" hidden></div>
@@ -613,6 +641,8 @@
     <div class="hub-scroll">
       <div class="hub-title" id="readTitle"></div>
       <div class="hub-sub" id="readSub"></div>
+      <div class="rimgs" id="readImgs"></div>
+      <input type="file" id="imgPick" accept="image/*" hidden>
       <div id="readTicks"></div>
       <div class="rctl"><button class="wplay" id="readPlay" aria-label="Play">▶</button><span id="readTime">0:00</span></div>
       <h3 class="hub-h">Transcript</h3>
@@ -694,17 +724,17 @@ void main(){
   float t = uTime * .15;
 
   // nebula backdrop
-  vec3 col = vec3(.012,.011,.006);
+  vec3 col = vec3(.004,.012,.022);
   float c1 = fbm(p*2.0 + vec2(t, -t*.7));
   float c2 = fbm(p*3.1 - vec2(t*.8, t) + 4.0);
   // warm firelight palette: amber idle -> ember orange while recording
-  vec3 calm = vec3(.95,.66,.32), warm = vec3(1.0,.38,.14), vio = vec3(.55,.30,.12);
+  vec3 calm = vec3(.10,.40,1.0), warm = vec3(1.0,.50,.12), vio = vec3(.04,.62,.42);
   vec3 tint = mix(calm, warm, uRec);
   // slow drifting light shafts from above, like the reference photo
   float shaft = smoothstep(.55, 0., abs(p.x*1.3 + .25*sin(p.y*2.0 + t*3.0) - .05)) * smoothstep(-.5,.6,p.y);
   col += tint * shaft * (.05 + .08*uLevel) * (.5 + c1);
   col += tint * smoothstep(.45,.95,c1) * (.10 + .20*uLevel);
-  col += vio  * smoothstep(.45,.95,c2) * .12;
+  col += vio  * smoothstep(.45,.95,c2) * .16;
 
   // floating embers / dust particles (3 depth layers)
   for(int i=0;i<24;i++){
@@ -717,7 +747,7 @@ void main(){
     float dd = length(p - pos);
     float tw = .55 + .45*sin(uTime*(1.2+h.x*2.0) + fi*3.0);
     float edge = smoothstep(1.0, .6, abs(pos.y+.02)*2.0);
-    col += mix(vec3(1.0,.82,.5), tint, .4) * (sz / (dd*dd*900.0 + sz)) * .35 * tw * edge * (1.0 + uLevel*1.5);
+    col += mix(vec3(1.0,.78,.32), tint, .35) * (sz / (dd*dd*900.0 + sz)) * .35 * tw * edge * (1.0 + uLevel*1.5);
   }
 
   // processing: a soft pulse of light in the middle of the scene (the ring that used to show this is gone)
@@ -893,6 +923,7 @@ const S = { level:0, rec:0, proc:0, targetLevel:0, recT:0, procT:0 };
 
 /* ============ Recorder ============ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rx = null, rxTimer = 0;                                       // rx: a recording being transcribed ({ t0 })
 const R = { on:false, mode:null, stream:null, mr:null, chunks:[], ctx:null, an:null, raf:0, rec:null, text:'', t0:0, tick:0, levels:[], real:false };
 const ANDROID = /Android/i.test(navigator.userAgent);   // Android Chrome can't share the mic between SpeechRecognition and getUserMedia
 
@@ -930,7 +961,7 @@ function makeWave(levels, n = 48){   // squash the level history into n ticks, 4
   return out;
 }
 
-function setStatus(s){ const t = s === 'Ready' ? '' : s; $('status').textContent = t; $('recStatus').textContent = t; }   // idle shows nothing
+function setStatus(s){ $('recStatusTxt').textContent = s === 'Ready' ? 'Recording' : s; }   // the home card shows transcription now, so the hero stays empty
 function setLive(t){ const l = $('live'); l.textContent = t; l.classList.toggle('has', !!t); l.scrollTop = l.scrollHeight; }
 
 async function startRecording(){
@@ -966,10 +997,11 @@ async function startRecording(){
     cleanup(); return;
   }
   R.on = true; R.t0 = Date.now(); S.recT = 1;
-  $('rec').classList.add('on'); setStatus('Listening'); $('timer').textContent = '00:00'; startRecUI();
+  $('rec').classList.add('on'); setStatus('Recording'); $('timer').textContent = '00:00'; phoneEl.classList.add('recording'); paintThink(); startRecUI();
   R.tick = setInterval(() => {
     const s = Math.floor((Date.now() - R.t0) / 1000);
-    $('timer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    const t = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    $('timer').textContent = t; $('thinkTime').textContent = t;
   }, 250);
 }
 
@@ -979,13 +1011,14 @@ function cleanup(){
   if(R.ctx) R.ctx.close().catch(()=>{});
   R.stream = R.ctx = R.an = null; R.on = false;
   S.targetLevel = 0; S.recT = 0;
-  $('rec').classList.remove('on'); stopRecUI();
+  $('rec').classList.remove('on'); phoneEl.classList.remove('recording'); stopRecUI(); paintThink();
 }
 
 async function stopRecording(){
   const dur = Math.round((Date.now() - R.t0) / 1000);
   R.on = false;  // before stop(), so SpeechRecognition.onend doesn't restart
   $('rec').disabled = true; S.procT = 1; setStatus('Transcribing');
+  rx = { t0:Date.now() }; paintThink(); go('home'); renderHome(); clearInterval(rxTimer); rxTimer = setInterval(paintRx, 500);   // back to the app: the last-recording card shows the transcription
   let text = '', words = null, blob = null;
   const wave = makeWave(R.levels);
   const grabBlob = () => (R.mr && R.mr.state !== 'inactive')
@@ -1001,7 +1034,7 @@ async function stopRecording(){
       text = R.text.trim() || $('live').textContent.trim();
     }
   }catch(err){ console.error(err); toast('Transcription failed: ' + (err.message || err)); cleanup(); }
-  S.procT = 0; $('rec').disabled = false; setStatus('Ready');
+  S.procT = 0; $('rec').disabled = false; setStatus('Ready'); clearInterval(rxTimer); rx = null;
   if(text || blob){                                         // keep the audio even if transcription failed; it can be transcribed later
     const entry = { id:Date.now(), ts:Date.now(), dur, text };
     if(blob){ entry.audio = true; entry.audioExt = audioExt(blob.type); AudioStore.put(entry.id, blob); }
@@ -1015,9 +1048,8 @@ async function stopRecording(){
     toast(cap ? 'Sealed until ' + new Date(cap).toLocaleDateString([], { year:'numeric', month:'short', day:'numeric' }) : 'Saved to journal');
     resetCapsule();
     if(!cap && text) analyzeEntry(entry.id);               // sealed entries stay unread until they open
-    go('home'); if(!cap) setTimeout(() => openReader(entry.id), 350);   // straight to what you just said
   }else{
-    go('home');
+    renderHome();
     if(!$('toast').classList.contains('on')){ toast('Nothing was heard'); setLive(''); }
   }
 }
@@ -1122,6 +1154,7 @@ function keywordsOf(e, n){   // tags first (people, projects, events, work), the
 function cardEl(e){
   const wide = (e.dur || 0) >= WIDE_SECS, sealed = !isOpen(e), d = new Date(e.ts);
   const c = el('div', 'wcard ' + toneOf(e) + (wide ? ' wide' : '') + (sealed ? ' sealed' : '')); c.dataset.id = e.id;
+  if(!sealed && e.images && e.images[0]){ const im = el('img', 'wimg'); im.src = e.images[0]; im.alt = ''; c.append(im); }
   const wl = el('div', 'wl');
   wl.append(el('b', null, sealed ? 'Capsule' : TYPE_NAME[typeOf(e)]),
             el('span', null, wide
@@ -1197,12 +1230,39 @@ function wordsOf(e){   // real word times when Whisper gave them; otherwise spre
   const toks = (e.text || '').split(/\s+/).filter(Boolean), total = toks.reduce((s, t) => s + t.length + 1, 0) || 1, dur = e.dur || 0;
   let acc = 0; return toks.map(t => { const s = dur * acc / total; acc += t.length + 1; return { w:t, s, e:dur * acc / total }; });
 }
+/* Pictures for a memory: shrunk in the browser and stored inside the entry, so they travel with it (GitHub / the server) like the text does. */
+const MAX_IMGS = 3;
+function shrinkImage(file, max = 640, q = .62){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas');
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', q)); };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Could not read that image')); };
+    im.src = url;
+  });
+}
+function paintImages(e){
+  const box = $('readImgs'); box.replaceChildren();
+  (e.images || []).forEach((src, i) => {
+    const w = el('div', 'rimg'), im = el('img'); im.src = src; im.alt = ''; const x = el('button', null, '✕'); x.setAttribute('aria-label', 'Remove image');
+    x.onclick = () => { e.images.splice(i, 1); if(!e.images.length) delete e.images; e.u = Date.now(); store.set('entries', entries); renderEntries(); paintImages(e); };
+    w.append(im, x); box.append(w);
+  });
+  if((e.images || []).length < MAX_IMGS){ const a = el('button', 'rimg add'); a.append(el('b', null, '+'), document.createTextNode('Add image')); a.onclick = () => $('imgPick').click(); box.append(a); }
+}
+$('imgPick').onchange = async ev => {
+  const f = ev.target.files[0], e = entryById(readId); ev.target.value = ''; if(!f || !e) return;
+  try{ const src = await shrinkImage(f); (e.images = e.images || []).push(src); e.u = Date.now(); store.set('entries', entries); renderEntries(); paintImages(e); }
+  catch(err){ toast(err.message || 'Could not add the image'); }
+};
 function renderReader(){
   const e = entryById(readId); if(!e) return;
   const d = new Date(e.ts), nWords = (e.text || '').split(/\s+/).filter(Boolean).length;
   $('readTitle').textContent = d.toLocaleDateString([], { weekday:'long', day:'numeric', month:'long' });
   $('readSub').textContent = [d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), e.dur ? fmtClock(e.dur) + ' min' : '', nWords ? nWords + ' words' : '', e.audio ? '' : 'text only'].filter(Boolean).join(' · ');
   $('readTicks').replaceChildren(ticksEl(e, 'big'));
+  paintImages(e);
   const box = $('readText'); box.replaceChildren(); readWords = []; readIdx = -1;
   box.classList.toggle('plain', !e.audio);
   if(!e.text) box.append(el('p', 'dimp', e.audio ? 'This recording hasn\'t been transcribed yet.' : 'No text.'));
@@ -1453,10 +1513,11 @@ $('analyze').addEventListener('click', async () => {
    Hot ones sit near the middle; lines join things that show up in the same entry. */
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 const hashN = s => { let h = 2166136261; for(const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return ((h >>> 0) % 1000) / 1000; };
-const heat = h => `hsl(${42 - 18 * h} ${28 + 72 * h}% ${40 + 28 * h}%)`;          // dull tan -> ember -> bright
+const heat = h => `hsl(${200 - 150 * h} ${40 + 60 * h}% ${38 + 26 * h}%)`;          // dull tan -> ember -> bright
 const KIND_ORDER = ['people', 'projects', 'work', 'events', 'missions', 'word'];
 
 function buildWeb(){
+  if(!$('web')) return;                                           // the web is parked (REMOVED.md); this code stays for when it comes back
   const open = entries.filter(isOpen), nodes = new Map(), edges = new Map();
   const wordFreq = {};
   const wordSets = open.map(e => {
@@ -1493,9 +1554,9 @@ function buildWeb(){
   let svg = `<svg viewBox="-170 -170 340 340" role="img" aria-label="Web of keywords and labels"><defs><filter id="gb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>`;
   for(let i = 0; i < 60; i++){
     const a = -Math.PI / 2 + i / 60 * Math.PI * 2, n = perDay[i], r0 = 138, r1 = r0 + 5 + Math.min(n, 3) * 4;
-    svg += `<line x1="${(Math.cos(a) * r0).toFixed(1)}" y1="${(Math.sin(a) * r0).toFixed(1)}" x2="${(Math.cos(a) * r1).toFixed(1)}" y2="${(Math.sin(a) * r1).toFixed(1)}" stroke="${n ? '#ffd27a' : 'rgba(243,236,220,.55)'}" stroke-width="${n ? 2.2 : 1.1}" stroke-linecap="round" opacity="${n ? 1 : .5}"/>`;
+    svg += `<line x1="${(Math.cos(a) * r0).toFixed(1)}" y1="${(Math.sin(a) * r0).toFixed(1)}" x2="${(Math.cos(a) * r1).toFixed(1)}" y2="${(Math.sin(a) * r1).toFixed(1)}" stroke="${n ? '#ffd27a' : 'rgba(200,230,240,.55)'}" stroke-width="${n ? 2.2 : 1.1}" stroke-linecap="round" opacity="${n ? 1 : .5}"/>`;
   }
-  svg += `<circle r="124" fill="none" stroke="rgba(243,236,220,.14)" stroke-width="1"/>`;
+  svg += `<circle r="124" fill="none" stroke="rgba(200,230,240,.14)" stroke-width="1"/>`;
   const maxE = Math.max(1, ...edges.values());
   [...edges.entries()].sort((a, b) => b[1] - a[1]).slice(0, 34).forEach(([id, w]) => {
     const [ka, kb] = id.split('|'), A = pos.get(ka), B = pos.get(kb); if(!A || !B) return;
@@ -1516,7 +1577,7 @@ function buildWeb(){
     ? svg + '<div class="legend scale"><span>less</span><i></i><span>more</span></div>'
     : svg + '<div class="legend">Speak for a few days and your web will appear.</div>';
 }
-$('web').addEventListener('click', e => {
+if($('web')) $('web').addEventListener('click', e => {
   const g = e.target.closest('.nd'); if(!g) return;
   filterTag = g.dataset.k; renderEntries(); openCards();                  // open the memories, filtered by that term
 });
@@ -1551,27 +1612,29 @@ dragToClose($('cardsGrab'), cardsEl);
 
 const ICON_WEB = '<circle cx="12" cy="12" r="2.4"/><circle cx="5.5" cy="6.5" r="1.8"/><circle cx="18.5" cy="7" r="1.8"/><circle cx="17" cy="18" r="1.8"/><circle cx="6.5" cy="17" r="1.8"/><path d="M10.2 10.6 6.8 7.9M13.8 10.7l3-2.4M13.4 13.6l2.5 2.9M10.5 13.5 7.8 15.7"/>';
 const ICON_TIME = '<path d="M12 3v18"/><circle cx="12" cy="7" r="1.8"/><circle cx="12" cy="17" r="1.8"/><path d="M13.8 7H20M10.2 17H4"/>';
-function applyView(v){                                          // the button shows where it will take you
-  phoneEl.dataset.view = v;
-  $('viewIcon').innerHTML = v === 'time' ? ICON_WEB : ICON_TIME;
-  $('viewLabel').textContent = v === 'time' ? 'Web' : 'Timeline';
-  $('tlTitle').textContent = v === 'time' ? 'Timeline' : 'Your web';
-}
-$('viewBtn').onclick = () => { const v = phoneEl.dataset.view === 'time' ? 'net' : 'time'; applyView(v); store.set('view', v); };
 
 /* ---- v3: pages ---- */
 function go(page){ phoneEl.dataset.page = page; if(page !== 'home') closeSearch(); requestAnimationFrame(placeAll); }
 $('tlBack').onclick = () => go('home');
-$('cardTl').onclick = () => { applyView('time'); go('time'); };            // the card says Timeline, so it opens the timeline; the switch inside goes to the web
+$('cardTl').onclick = () => go('time');
 
 /* Think aloud: starts recording by itself and opens the recording page right away; if the mic can't start we go back home. */
 async function beginThink(){
-  if(R.on) return;
-  go('rec'); $('recQ').hidden = true; $('recStatus').textContent = 'Starting…';
+  if(R.on){ go('rec'); return; }
+  if(rx){ toast('Still transcribing your last recording…'); return; }
+  go('rec'); $('recQ').hidden = true;
+  phoneEl.classList.add('recording'); setStatus('Recording'); $('rec').classList.add('on'); $('timer').textContent = '00:00';   // the page already shows it is recording
   await startRecording();
-  if(!R.on) go('home');
+  if(!R.on){ phoneEl.classList.remove('recording'); $('rec').classList.remove('on'); go('home'); }
 }
-$('cardThink').onclick = beginThink;
+$('cardThink').onclick = beginThink;                               // while recording, the same circle brings the recording page back
+$('recMin').onclick = () => go('home');                            // collapse: recording goes on, the circle on the home page shows it
+function paintThink(){
+  const c = $('cardThink'); c.classList.toggle('rec', R.on);
+  $('thinkLbl').textContent = R.on ? 'Recording' : 'Think aloud'; $('thinkTime').hidden = !R.on;
+  c.setAttribute('aria-label', R.on ? 'Recording. Tap to open the recording page' : 'Think aloud: start recording');
+}
+function paintRx(){ if(rx) $('featTime').textContent = fmtClock((Date.now() - rx.t0) / 1000); }
 
 /* While recording: the orb breathes with your voice, the screen stays awake, and if the phone cuts the mic while you were away we save what we got. */
 let orbRaf = 0;
@@ -1704,6 +1767,7 @@ function buildTimeline(){
       p.onclick = () => openReader(e.id); pills.append(p);
     }
     date.append(el('div', 'tldate', d.toLocaleDateString([], { day:'numeric', month:'short' })));
+    if(e.images && e.images[0]){ const th = el('img', 'tlthumb'); th.src = e.images[0]; th.alt = ''; date.append(th); }
     const mid = el('div', 'tlmid'); mid.append(el('i', 'tldot ' + tone));
     row.append(...(left ? [pills, mid, date] : [date, mid, pills])); box.append(row);
   }
@@ -1718,16 +1782,25 @@ function pickFeatured(open){
   const src = pool.length ? pool : items;
   return src.length ? src[Math.floor(Date.now() / 864e5) % src.length] : null;
 }
+function excerpt(t, n){ t = t.replace(/\s+/g, ' ').trim(); if(t.length <= n) return t; const cut = t.slice(0, n), sp = cut.lastIndexOf(' '); return cut.slice(0, sp > n * .6 ? sp : n) + '…'; }
 function renderHome(){
   const open = entries.filter(e => isOpen(e) && e.text);
-  const f = open.length ? pickFeatured(open) : null, card = $('cardFeat');
-  if(!f){
-    card.className = 'lcard feat sage'; $('featLabel').textContent = 'Featured memory';
-    $('featQuote').textContent = 'The moments that matter most will be featured here.'; card.onclick = beginThink;
+  /* the last-recording card has three lives: nothing yet | transcribing (spinner and elapsed time) | the latest entry, with its photo if it has one */
+  const card = $('cardFeat'), img = $('featImg'), busy = !!rx, last = busy ? null : entries.slice().sort((a, b) => b.ts - a.ts)[0];
+  $('featBusy').hidden = !busy; img.hidden = true; card.classList.remove('hasimg');
+  if(busy){
+    card.className = 'lcard feat cobalt busy'; $('featLabel').textContent = 'Transcribing…';
+    $('featQuote').textContent = 'Turning your voice into text. You can keep using Alive.'; card.onclick = null; paintRx();
+  }else if(!last){
+    card.className = 'lcard feat sage'; $('featLabel').textContent = 'Last recording';
+    $('featQuote').textContent = 'Your last recording will show up here.'; card.onclick = beginThink;
   }else{
-    card.className = 'lcard feat ' + TYPE_TONE[typeOf(f.e)];
-    $('featLabel').textContent = 'Featured · ' + new Date(f.e.ts).toLocaleDateString([], { day:'numeric', month:'long' });
-    $('featQuote').textContent = '“' + f.kp + '”'; card.onclick = () => openReader(f.e.id);
+    const sealed = !isOpen(last), d = new Date(last.ts);
+    card.className = 'lcard feat ' + (sealed ? 'plum' : TYPE_TONE[typeOf(last)]);
+    $('featLabel').textContent = 'Last recording · ' + d.toLocaleDateString([], { day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) + (last.dur ? ' · ' + fmtClock(last.dur) : '');
+    $('featQuote').textContent = sealed ? 'Sealed as a time capsule until ' + fmtDay(last.capsule) + '.' : last.text ? '“' + excerpt(last.text, 130) + '”' : 'Not transcribed yet. Tap to open it.';
+    card.onclick = () => sealed ? toast('Sealed until ' + fmtDay(last.capsule)) : openReader(last.id);
+    if(!sealed && last.images && last.images[0]){ img.src = last.images[0]; img.hidden = false; card.classList.add('hasimg'); }
   }
   // timeline preview: the latest memories that have key points, as dots on a spine with bars sized by importance
   const mini = $('tlMini'); mini.replaceChildren();
@@ -2176,14 +2249,17 @@ function liven(e, text){
   e.setAttribute('aria-label', e.textContent); letterIdx = 0;
   e.replaceChildren(...[...e.childNodes].map(splitNode)); e.classList.add('alive'); place(e);
 }
+{ const ph = $('phone');                                           // keep the phone exactly 412:915 inside whatever the browser gives us
+  const fit = () => { const v = window.visualViewport, w = v ? v.width : innerWidth, h = v ? v.height : innerHeight, pw = Math.floor(Math.min(w, h * 412 / 915));
+    ph.style.width = pw + 'px'; ph.style.height = Math.round(pw * 915 / 412) + 'px'; };
+  fit(); addEventListener('resize', fit); if(window.visualViewport) visualViewport.addEventListener('resize', fit); }
 new ResizeObserver(placeAll).observe($('phone'));
 if(document.fonts) document.fonts.ready.then(placeAll);
 
 { const p = PROMPTS[new Date().getDate() % PROMPTS.length]; liven($('prompt'), p[0]); $('sub').textContent = p[1];
-  document.querySelectorAll('h2, .logo, #hubTitle, #cardsTitle').forEach(h => liven(h)); }
+  document.querySelectorAll('h2, .logo, #cardsTitle').forEach(h => liven(h)); }
 (async function boot(){
   await store.init();
-  applyView(store.get('view', 'net'));
   entries = store.get('entries', []);
   settings = Object.assign(settings, store.get('settings', {}));
   renderEntries(); renderInsights(store.get('insights', null));

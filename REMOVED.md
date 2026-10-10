@@ -54,3 +54,8 @@ The `.blk, .armed, .topbar` rule sits right after the scroller pass-through rule
 - Scroll layout and bottom-resting stack: `layout`, `restTop`, `scrollToRest`
 - Patterns block: `.blk` (second one) in the scroller; time-capsule switch: `.blk.capblk`. Both sit above the cards, off-screen at rest, and
   slide in when you scroll up.
+
+## v3 (`alive-v3.html`): removed on request
+- **The memory web** (the "Your web" view and the Web/Timeline switch). The timeline is the only view. `buildWeb()` is still in the file (it returns early without `#web`); put `<div id="web"></div>` back in `#tlPage` and a switch button to restore it.
+- **Featured memory card**, replaced by **Last recording** (spinner and elapsed time while transcribing, then the entry). `pickFeatured()` is still in the file.
+- Warm brown/amber palette, replaced by blue/green with orange-yellow as the accent.
