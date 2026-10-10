@@ -163,5 +163,5 @@
     return patch;
   }
 
-  return { run, analyze, extract, candidates, connect, gate, grounded, supported, norm, cosine, MIN_SECONDS, MIN_WORDS, RELATIONS };
+  return { run, analyze, extract, candidates, connect, gate, grounded, supported, norm, cosine, detectLang, MIN_SECONDS, MIN_WORDS, RELATIONS };
 });

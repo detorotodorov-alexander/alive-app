@@ -208,8 +208,6 @@
 
   /* Sheets (memories and reader). The home screen recedes behind them. */
   #webLayer,#timeline,.dock,#gl,#hero,.topbar{transition:opacity .45s ease,visibility .45s,scale .6s cubic-bezier(.2,.8,.2,1),translate .6s cubic-bezier(.2,.8,.2,1),filter .6s ease}
-  #phone.sheeted .dock,#phone.sheeted #hero,#phone.sheeted .topbar,#phone.sheeted #webLayer,#phone.sheeted #timeline{scale:.93}
-  #phone.sheeted .dock,#phone.sheeted #webLayer,#phone.sheeted #timeline{filter:brightness(.45)}
   #phone.sheeted #gl{filter:brightness(.5)}
   #hubScrim{position:absolute;inset:0;z-index:12;pointer-events:none}
   #phone.sheeted #hubScrim{pointer-events:auto}
@@ -388,10 +386,99 @@
   .sage{--c1:#93b4a2;--c2:#6a887a} .rose{--c1:#f3add3;--c2:#c4538f} .cobalt{--c1:#4a67e6;--c2:#1b2e98}
   .ember{--c1:#e8703f;--c2:#c04a1f} .plum{--c1:#bd6c7c;--c2:#684862}
   .tlempty{color:var(--dim);text-align:center;font-style:italic;margin-top:12cqw;font-size:3.6cqw}
+
+  /* ===== v3: pages. Home (title, three loose cards, search) | Recording | Timeline (web or timeline) ===== */
+  .pg{position:absolute;inset:0;z-index:2;opacity:0;visibility:hidden;pointer-events:none;translate:0 2cqh;
+    transition:opacity .45s ease,visibility .45s,translate .55s cubic-bezier(.2,.8,.2,1),scale .6s cubic-bezier(.2,.8,.2,1),filter .6s ease}
+  #phone[data-page="home"] #home,#phone[data-page="rec"] #recPage,#phone[data-page="time"] #tlPage{opacity:1;visibility:visible;pointer-events:auto;translate:0 0}
+  #phone.sheeted .pg{scale:.93}
+  #phone.sheeted .pg{filter:brightness(.45)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .icon-btn{position:relative}
+  .icon-btn svg{width:5.4cqw;height:5.4cqw;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  .icon-btn .cnt{position:absolute;top:-1cqw;right:-1cqw;min-width:4.2cqw;height:4.2cqw;padding:0 1cqw;border-radius:99px;background:var(--warm);
+    color:#1a0f04;font:600 2.5cqw/4.2cqw system-ui,sans-serif;text-align:center}
+
+  /* Home: the three loose cards float below the title, slightly rotated, like widgets dropped on a table */
+  #cards3{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top) + 64cqw);height:112cqw;transition:opacity .3s}
+  .lcard{position:absolute;border:0;text-align:left;color:#fff;cursor:pointer;isolation:isolate;overflow:hidden;
+    border-radius:8cqw;corner-shape:squircle;padding:4.6cqw;display:flex;flex-direction:column;justify-content:space-between;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-shadow:0 3cqw 9cqw rgba(0,0,0,.5);
+    animation:floaty 8s ease-in-out infinite}
+  .lcard::before{content:"";position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(ellipse 62% 54% at var(--bx,40%) var(--by,62%),var(--blob,#05070a) 0%,transparent 100%),linear-gradient(165deg,var(--c1),var(--c2))}
+  .lcard:active{scale:.97}
+  .lcard.ember{--blob:#2c47dc;--bx:78%;--by:70%} .lcard.cobalt{--blob:#02030a} .lcard.sage{--blob:#05070a} .lcard.rose{--blob:#4d0b33} .lcard.plum{--blob:#100a10}
+  .lcard .lt{font-size:3.4cqw;letter-spacing:.04em;opacity:.92}
+  .lcard .lbig{font-size:8.4cqw;font-weight:300;letter-spacing:-.02em;line-height:1.05}
+  .lcard .lsub{font-size:3.3cqw;opacity:.88;line-height:1.35}
+  .lcard .go{align-self:flex-start;font-size:3.1cqw;font-weight:600;background:rgba(255,255,255,.92);color:#1a0f04;border-radius:99px;padding:1.5cqw 3.4cqw}
+  .lcard svg{width:9cqw;height:9cqw;stroke:#fff;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+  .lcard.think{left:5cqw;top:0;width:55cqw;height:52cqw;rotate:-3deg}
+  .lcard.tl{right:5cqw;top:9cqw;width:37cqw;height:43cqw;rotate:3.5deg;animation-delay:-2.6s}
+  .lcard.feat{left:10cqw;right:6cqw;top:58cqw;height:46cqw;rotate:-1.4deg;animation-delay:-5s}
+  .lcard.feat .lq{font-family:"Lora",Georgia,serif;font-style:italic;font-size:4.5cqw;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  @keyframes floaty{50%{translate:0 -1.6cqw}}
+  #phone[data-page="home"] #home.searching #cards3{opacity:.0;pointer-events:none}
+
+  /* Home: universal search, at the very bottom */
+  #searchBar{position:absolute;left:5cqw;right:5cqw;bottom:calc(env(safe-area-inset-bottom) + 6cqw);height:14cqw;display:flex;align-items:center;gap:3cqw;
+    padding:0 4.4cqw;border-radius:99px;background:rgba(20,17,11,.78);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    box-shadow:0 2cqw 8cqw rgba(0,0,0,.45);z-index:6}
+  #searchBar svg{flex:none;width:5.4cqw;height:5.4cqw;stroke:var(--calm);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  #q{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:4.1cqw "Lora",Georgia,serif}
+  #q::placeholder{color:var(--dim)}
+  #qClear{flex:none;background:none;border:0;color:var(--dim);font-size:4.4cqw}
+  #searchRes{position:absolute;left:4cqw;right:4cqw;bottom:calc(env(safe-area-inset-bottom) + 23cqw);max-height:62cqh;overflow-y:auto;z-index:5;
+    border-radius:6cqw;background:rgba(14,12,8,.94);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    padding:3cqw;scrollbar-width:none}
+  #searchRes::-webkit-scrollbar{display:none}
+  #searchRes[hidden]{display:none}
+  .sres-h{font-size:3cqw;letter-spacing:.14em;text-transform:uppercase;color:var(--calm);margin:1cqw 2cqw 2.4cqw}
+  .sres{display:block;width:100%;text-align:left;background:rgba(243,236,220,.05);border:1px solid var(--line);border-radius:4cqw;padding:3cqw 3.6cqw;margin-bottom:2cqw;color:#e9dfc6}
+  .sres .sh{display:flex;align-items:center;gap:2cqw;margin-bottom:1.2cqw;font:500 3cqw system-ui,sans-serif;color:var(--dim);letter-spacing:.04em}
+  .sres .sh i{width:2.6cqw;height:2.6cqw;border-radius:50%;background:var(--c1)}
+  .sres .sq{font-size:3.7cqw;line-height:1.45}
+  .sres mark{background:rgba(255,214,120,.22);color:#ffe9b0;border-radius:1cqw;padding:0 .6cqw}
+  .sres-none{color:var(--dim);font-style:italic;text-align:center;padding:5cqw 3cqw;font-size:3.7cqw}
+
+  /* Timeline page: a back button, the Web/Timeline switch and the Memories button */
+  .pgbar{position:absolute;left:0;right:0;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+    padding:calc(env(safe-area-inset-top) + 4cqw) 5cqw 0}
+  .pgtitle{font-size:6cqw}
+  .pgacts{display:flex;gap:2cqw}
+  #tlPage #timeline{top:calc(env(safe-area-inset-top) + 22cqw);bottom:6cqw}
+
+  /* Recording page */
+  #recPage{display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(env(safe-area-inset-top) + 8cqw) 6cqw calc(env(safe-area-inset-bottom) + 8cqw)}
+  .recnote{font-size:3.4cqw;color:#d6cba8;border:1px solid var(--line);background:rgba(20,17,11,.55);border-radius:99px;padding:2cqw 4.6cqw;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .recorb{flex:none;margin:12cqw 0 7cqw;width:44cqw;height:44cqw;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%,#ffe0b8,#ee7a44 52%,#7a2e12 100%);
+    box-shadow:0 0 calc(10cqw + var(--lvl, 0) * 16cqw) rgba(255,138,76,.42);scale:calc(1 + var(--lvl, 0) * .2);animation:orbglow 5s ease-in-out infinite}
+  @keyframes orbglow{50%{filter:brightness(1.14)}}
+  .recstatus{font-size:3.4cqw;color:var(--calm);letter-spacing:.22em;text-transform:uppercase;min-height:5cqw}
+  #recPage .timer{font:300 13cqw/1 system-ui,sans-serif;color:var(--ink);height:auto;margin:1.6cqw 0 4cqw;letter-spacing:.02em}
+  #recPage .live{margin-bottom:3cqw;max-height:20cqw}
+  #recPage .armed{display:none}                                      /* the capsule button already shows the date */
+  .recq{width:100%;border:1px solid var(--line);background:rgba(20,17,11,.62);border-radius:6cqw;padding:4cqw 5cqw;margin-bottom:3cqw;
+    font:italic 4.5cqw/1.4 "Lora",Georgia,serif;color:#f4ecd8;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .recq[hidden],.reccap[hidden]{display:none}
+  .reccap{display:flex;flex-wrap:wrap;gap:2cqw;justify-content:center;margin-bottom:3cqw}
+  .reccap button{background:rgba(20,17,11,.7);border:1px solid var(--line);color:#e9dfc6;border-radius:99px;padding:1.8cqw 3.8cqw;font-size:3.3cqw}
+  .reccap button.on{border-color:rgba(232,196,138,.7);color:var(--calm)}
+  .reccap input{background:#17130b;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.4cqw 2.4cqw;font-size:3.3cqw;color-scheme:dark}
+  .recbtns{margin-top:auto;width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:3cqw}
+  #recPage #rec{width:20cqw;height:20cqw;margin-top:0}
+  #recPage #rec .dot{width:6cqw;height:6cqw}
+  #recPage #rec.on .dot{width:6cqw;height:6cqw}
+  .rbtn{display:flex;flex-direction:column;align-items:center;gap:1.2cqw;background:none;border:0;color:var(--dim);font-size:3cqw;letter-spacing:.05em;padding:1cqw 0}
+  .rbtn svg{width:6.4cqw;height:6.4cqw;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+  .rbtn:active,.rbtn.on{color:var(--calm)}
 </style>
 </head>
 <body>
-<div id="phone">
+<div id="phone" data-page="home">
   <div id="photo"></div>
   <canvas id="gl"></canvas>
   <div id="fallback"></div>
@@ -399,12 +486,51 @@
   <div id="grain"></div>
 
   <div class="layer">
-    <!-- Title on top, the memory web (or the timeline) in the middle, the task bar at the bottom. Cards live in a sheet. -->
-    <div id="hero">
-      <div class="status" id="status"></div>
-      <div class="prompt" id="prompt"></div>
-      <div class="sub" id="sub"></div>
-    </div>
+    <!-- HOME: the floating question, three loose cards (something to do each), and a universal search at the very bottom. -->
+    <section class="pg" id="home" aria-label="Home">
+      <div id="hero">
+        <div class="status" id="status"></div>
+        <div class="prompt" id="prompt"></div>
+        <div class="sub" id="sub"></div>
+      </div>
+
+      <div id="cards3">
+        <button class="lcard think ember" id="cardThink" aria-label="Think aloud: start recording">
+          <div class="lt">Think aloud</div>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+          <div><div class="lsub">Just talk. We keep what matters.</div></div>
+          <span class="go">Start recording</span>
+        </button>
+        <button class="lcard tl cobalt" id="cardTl" aria-label="Open the timeline">
+          <div class="lt">Timeline</div>
+          <div><div class="lbig" id="tlCount">0</div><div class="lsub" id="tlSub">memories</div></div>
+          <span class="go">Open</span>
+        </button>
+        <button class="lcard feat sage" id="cardFeat" aria-label="Featured memory">
+          <div class="lt" id="featLabel">Featured memory</div>
+          <div class="lq" id="featQuote">Your first memory will appear here.</div>
+          <span class="go" id="featGo">Say something</span>
+        </button>
+      </div>
+
+      <div id="searchRes" hidden></div>
+      <label id="searchBar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>
+        <input id="q" type="search" placeholder="Search all your memories" autocomplete="off" autocapitalize="off" enterkeyhint="search" aria-label="Search your memories">
+        <button id="qClear" type="button" aria-label="Clear" hidden>✕</button>
+      </label>
+    </section>
+
+    <!-- TIMELINE PAGE: the memory web or the timeline, a switch between them, and the Memories (cards) button -->
+    <section class="pg" id="tlPage" aria-label="Timeline">
+    <header class="pgbar">
+      <button class="icon-btn" id="tlBack" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="pgtitle" id="tlTitle">Timeline</div>
+      <div class="pgacts">
+        <button class="icon-btn" id="viewBtn" aria-label="Switch between web and timeline"><svg id="viewIcon" viewBox="0 0 24 24" aria-hidden="true"></svg><span class="sr" id="viewLabel">Timeline</span></button>
+        <button class="icon-btn" id="cardsBtn" aria-label="Open memories"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2.2"/></svg><b class="cnt" id="cardsCount" hidden></b></button>
+      </div>
+    </header>
 
     <div id="webLayer">
       <div class="hub-title" id="hubTitle">Your web</div>
@@ -416,6 +542,7 @@
       <div id="tlLegend"></div>
       <div id="tlScroll"><div id="tlList"></div></div>
     </div>
+    </section>
 
     <header class="topbar">
       <div class="logo">Al<i>i</i>ve</div>
@@ -435,24 +562,29 @@
       </section>
     </div>
 
-    <div class="dock">
+    <!-- RECORDING PAGE: opens by itself when you start; time so far, save as a time capsule, a question to get you going -->
+    <section class="pg" id="recPage" aria-label="Recording">
+      <div class="recnote" id="recNote">You can leave the app. We keep listening.</div>
+      <div class="recorb" id="recOrb" aria-hidden="true"></div>
+      <div class="recstatus" id="recStatus">Listening</div>
+      <div class="timer" id="timer">00:00</div>
       <div class="live" id="live"></div>
       <div class="armed" id="armed" hidden></div>
-      <nav class="taskbar" aria-label="Task bar">
-        <button class="tb" id="cardsBtn" aria-label="Open memories">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2.2"/></svg>
-          <span>Memories</span><b class="cnt" id="cardsCount" hidden></b>
+      <div class="recq" id="recQ" hidden></div>
+      <div class="reccap" id="recCap" hidden>
+        <button type="button" data-m="1">1 month</button><button type="button" data-m="6">6 months</button><button type="button" data-m="12" class="on">1 year</button>
+        <input type="date" id="recCapDate" aria-label="Open on">
+      </div>
+      <div class="recbtns">
+        <button class="rbtn" id="capQuick" aria-label="Save as a time capsule">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.6 1.6M9.5 3h5"/></svg><span id="capQuickLbl">Time capsule</span>
         </button>
-        <div class="rec-wrap">
-          <button id="rec" aria-label="Record"><span class="dot"></span></button>
-          <div class="timer" id="timer"></div>
-        </div>
-        <button class="tb" id="viewBtn" aria-label="Switch between web and timeline">
-          <svg id="viewIcon" viewBox="0 0 24 24" aria-hidden="true"></svg>
-          <span id="viewLabel">Timeline</span>
+        <button id="rec" aria-label="Stop and save"><span class="dot"></span></button>
+        <button class="rbtn" id="askBtn" aria-label="Show a question to get you going">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg><span>Inspire me</span>
         </button>
-      </nav>
-    </div>
+      </div>
+    </section>
   </div>
 
   <!-- Memories: every card, in a sheet that opens from the task bar -->
@@ -789,7 +921,7 @@ function makeWave(levels, n = 48){   // squash the level history into n ticks, 4
   return out;
 }
 
-function setStatus(s){ $('status').textContent = s === 'Ready' ? '' : s; }   // idle shows nothing
+function setStatus(s){ const t = s === 'Ready' ? '' : s; $('status').textContent = t; $('recStatus').textContent = t; }   // idle shows nothing
 function setLive(t){ const l = $('live'); l.textContent = t; l.classList.toggle('has', !!t); l.scrollTop = l.scrollHeight; }
 
 async function startRecording(){
@@ -825,7 +957,7 @@ async function startRecording(){
     cleanup(); return;
   }
   R.on = true; R.t0 = Date.now(); S.recT = 1;
-  $('rec').classList.add('on'); setStatus('Listening');
+  $('rec').classList.add('on'); setStatus('Listening'); $('timer').textContent = '00:00'; startRecUI();
   R.tick = setInterval(() => {
     const s = Math.floor((Date.now() - R.t0) / 1000);
     $('timer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
@@ -838,7 +970,7 @@ function cleanup(){
   if(R.ctx) R.ctx.close().catch(()=>{});
   R.stream = R.ctx = R.an = null; R.on = false;
   S.targetLevel = 0; S.recT = 0;
-  $('rec').classList.remove('on'); $('timer').textContent = '';
+  $('rec').classList.remove('on'); stopRecUI();
 }
 
 async function stopRecording(){
@@ -874,7 +1006,11 @@ async function stopRecording(){
     toast(cap ? 'Sealed until ' + new Date(cap).toLocaleDateString([], { year:'numeric', month:'short', day:'numeric' }) : 'Saved to journal');
     resetCapsule();
     if(!cap && text) analyzeEntry(entry.id);               // sealed entries stay unread until they open
-  }else if(!$('toast').classList.contains('on')){ toast('Nothing was heard'); setLive(''); }
+    go('home'); if(!cap) setTimeout(() => openReader(entry.id), 350);   // straight to what you just said
+  }else{
+    go('home');
+    if(!$('toast').classList.contains('on')){ toast('Nothing was heard'); setLive(''); }
+  }
 }
 
 async function transcribe(blob){
@@ -892,7 +1028,7 @@ async function transcribe(blob){
   return { text:(j.text || '').trim(), words:(j.words || []).map(w => ({ w:w.word, s:+w.start.toFixed(2), e:+w.end.toFixed(2) })) };
 }
 
-$('rec').addEventListener('click', () => R.on ? stopRecording() : startRecording());
+$('rec').addEventListener('click', () => R.on ? stopRecording() : beginThink());
 
 /* ============ Journal ============ */
 function fmtDate(ts){ return new Date(ts).toLocaleString([], { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
@@ -994,7 +1130,7 @@ function cardEl(e){
   return c;
 }
 function renderEntries(){
-  buildWeb(); buildTimeline();                                      // the web and the timeline are the home screen: keep them current
+  buildWeb(); buildTimeline(); renderHome();                       // the web, the timeline and the home cards: keep them current
   const cnt = $('cardsCount'); cnt.hidden = !entries.length; cnt.textContent = entries.length;
   const box = $('entries'); box.replaceChildren();
   if(filterTag){
@@ -1214,7 +1350,12 @@ function syncCapUI(){   // pill, date row, the "sealed until" note above the rec
   $('capPlus').textContent = on ? '✕' : '+';
   $('capRow').hidden = !on;
   $('armed').hidden = !on;
-  $('armed').textContent = on && capDate.value ? '⏳ Next entry sealed until ' + fmtDay(new Date(capDate.value + 'T09:00').getTime()) : '';
+  $('armed').textContent = on && capDate.value ? '⏳ This recording will be sealed until ' + fmtDay(new Date(capDate.value + 'T09:00').getTime()) : '';
+  const q = $('capQuick');                                          // the capsule button on the recording page mirrors the state
+  if(q){
+    q.classList.toggle('on', on); $('recCap').hidden = !on;
+    $('capQuickLbl').textContent = on && capDate.value ? 'Opens ' + new Date(capDate.value + 'T09:00').toLocaleDateString([], { day:'numeric', month:'short', year:'numeric' }) : 'Time capsule';
+  }
 }
 function resetCapsule(){ capDate.hidden = true; capDate.value = ''; syncCapUI(); }
 capBtn.onclick = () => {
@@ -1405,8 +1546,91 @@ function applyView(v){                                          // the button sh
   phoneEl.dataset.view = v;
   $('viewIcon').innerHTML = v === 'time' ? ICON_WEB : ICON_TIME;
   $('viewLabel').textContent = v === 'time' ? 'Web' : 'Timeline';
+  $('tlTitle').textContent = v === 'time' ? 'Timeline' : 'Your web';
 }
 $('viewBtn').onclick = () => { const v = phoneEl.dataset.view === 'time' ? 'net' : 'time'; applyView(v); store.set('view', v); };
+
+/* ---- v3: pages ---- */
+function go(page){ phoneEl.dataset.page = page; if(page !== 'home') closeSearch(); requestAnimationFrame(placeAll); }
+$('tlBack').onclick = () => go('home');
+$('cardTl').onclick = () => { applyView('time'); go('time'); };            // the card says Timeline, so it opens the timeline; the switch inside goes to the web
+
+/* Think aloud: starts recording by itself and opens the recording page right away; if the mic can't start we go back home. */
+async function beginThink(){
+  if(R.on) return;
+  go('rec'); $('recQ').hidden = true; $('recStatus').textContent = 'Starting…';
+  await startRecording();
+  if(!R.on) go('home');
+}
+$('cardThink').onclick = beginThink;
+
+/* While recording: the orb breathes with your voice, the screen stays awake, and if the phone cuts the mic while you were away we save what we got. */
+let orbRaf = 0;
+function startRecUI(){
+  const orb = $('recOrb');
+  const loop = () => { orb.style.setProperty('--lvl', Math.min(1, S.level).toFixed(3)); orbRaf = requestAnimationFrame(loop); };
+  cancelAnimationFrame(orbRaf); loop();
+  if(navigator.wakeLock) navigator.wakeLock.request('screen').then(l => { R.wl = l; }).catch(() => {});
+}
+function stopRecUI(){ cancelAnimationFrame(orbRaf); $('recOrb').style.setProperty('--lvl', 0); if(R.wl){ R.wl.release().catch(() => {}); R.wl = null; } }
+document.addEventListener('visibilitychange', () => {
+  if(!R.on || document.hidden) return;
+  const tr = R.stream && R.stream.getAudioTracks()[0];
+  if(R.mode === 'whisper' && tr && tr.readyState === 'ended'){ toast('Your phone paused the mic. Saving what we got.'); stopRecording(); }
+  else if(navigator.wakeLock && !R.wl) navigator.wakeLock.request('screen').then(l => { R.wl = l; }).catch(() => {});
+});
+
+/* Time capsule, from the recording page: a button, then when it should open. Drives the same capsule state the rest of the app uses. */
+function setCapsuleMonths(m){
+  const d = new Date(); d.setMonth(d.getMonth() + m); const iso = d.toISOString().slice(0, 10);
+  capDate.min = new Date(Date.now() + 864e5).toISOString().slice(0, 10); capDate.value = iso; capDate.hidden = false;
+  $('recCapDate').value = iso; syncCapUI();
+  $('recCap').querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.m === m));
+}
+$('capQuick').onclick = () => { if(capDate.hidden) setCapsuleMonths(12); else resetCapsule(); };   // armed = capDate is showing
+$('recCap').addEventListener('click', e => { const b = e.target.closest('button[data-m]'); if(b) setCapsuleMonths(+b.dataset.m); });
+$('recCapDate').onchange = () => {
+  const v = $('recCapDate').value; if(!v || new Date(v + 'T09:00') <= Date.now()) return;
+  capDate.value = v; capDate.hidden = false; syncCapUI(); $('recCap').querySelectorAll('button').forEach(b => b.classList.remove('on'));
+};
+
+/* A question to get you going. Grounded first: something you said you'd do, quoted from your own words, that you haven't picked up
+   again; then general prompts. Nothing is invented about you. */
+const PROMPTS_ES = ['¿Qué te está ocupando la cabeza ahora mismo?', '¿Qué te ha dado energía hoy y qué te la ha quitado?', '¿Qué estás evitando, y por qué?',
+  'Si hoy se repitiera durante un año, ¿estarías orgulloso?', '¿Cuándo fue la última vez que te sentiste vivo de verdad?', '¿Qué quieres más de ahora en adelante?'];
+function userLang(){
+  const recent = entries.filter(e => e.text).slice(0, 3).map(e => e.text).join(' ');
+  return recent ? Pipeline.detectLang(recent) : ((navigator.language || 'en').startsWith('es') ? 'Spanish' : 'English');
+}
+function inspireQuestions(){
+  const lang = userLang(), es = lang === 'Spanish', out = [];
+  const open = entries.filter(e => isOpen(e) && e.text).sort((a, b) => b.ts - a.ts);
+  const sentences = t => (t.match(/[^.!?]+[.!?]?/g) || []).map(s => s.trim()).filter(s => s.split(/\s+/).length >= 4);
+  for(const e of open){
+    if(Date.now() - e.ts < 2 * 864e5) continue;                              // give it a couple of days
+    const missions = [...((e.tags && e.tags.missions) || [])];
+    for(const m of missions){
+      const mw = new Set(sigWords(m)); if(mw.size < 2) continue;
+      let best = null, bs = 0;
+      for(const s of sentences(e.text)){ const n = sigWords(s).filter(w => mw.has(w)).length; if(n > bs){ bs = n; best = s; } }
+      if(!best || bs < 2) continue;
+      const taken = open.some(o => o.ts > e.ts && sigWords(o.text).filter(w => mw.has(w)).length >= 2);   // already picked up again later?
+      const when = new Date(e.ts).toLocaleDateString([], { day:'numeric', month:'long' });
+      const q = best.length > 150 ? best.slice(0, 147) + '…' : best;
+      out.push({ taken, ts:e.ts, text: es ? `El ${when} dijiste «${q.replace(/[.!?]+$/, '')}». ¿Cómo va eso?` : `On ${when} you said «${q.replace(/[.!?]+$/, '')}». How is that going?` });
+      break;
+    }
+  }
+  out.sort((a, b) => (a.taken - b.taken) || (b.ts - a.ts));                  // things you haven't picked up again first, then the most recent
+  const grounded = out.slice(0, 3).map(o => o.text);
+  const general = (es ? PROMPTS_ES : PROMPTS.map(p => p[0]));
+  return grounded.concat(general);
+}
+let askIdx = -1;
+$('askBtn').onclick = () => {
+  const qs = inspireQuestions(); askIdx = (askIdx + 1) % qs.length;
+  const q = $('recQ'); q.textContent = qs[askIdx]; q.hidden = false; $('askBtn').classList.add('on');
+};
 
 // With the gear hidden, press and hold the title to open settings.
 {
@@ -1431,8 +1655,7 @@ const tlOff = new Set();                                         // types switch
 // An analysed entry has exactly the points it was given (possibly none). Only older entries, never analysed, fall back to their first sentences.
 const keypointsOf = e => e.analysis ? (e.points || []) : (e.points && e.points.length) ? e.points : (e.text ? localEntry(e.text).points : []);
 const sigWords = s => (s.toLowerCase().match(/[a-zà-ÿ]{5,}/g) || []).filter(w => !STOP.has(w));
-function buildTimeline(){
-  const open = entries.filter(e => isOpen(e) && e.text).sort((a, b) => b.ts - a.ts);
+function scoredKeypoints(open){            // every key point with its importance score and tier (1 large, 2 medium, 3 small)
   const toks = new Map(open.map(e => [e.id, new Set(sigWords(keypointsOf(e).join(' ') + ' ' + e.text))]));
   const items = [];
   for(const e of open){
@@ -1444,6 +1667,11 @@ function buildTimeline(){
     });
   }
   items.slice().sort((a, b) => b.score - a.score).forEach((it, r, all) => { it.tier = r < all.length * .2 ? 1 : r < all.length * .55 ? 2 : 3; });
+  return items;
+}
+function buildTimeline(){
+  const open = entries.filter(e => isOpen(e) && e.text).sort((a, b) => b.ts - a.ts);
+  const items = scoredKeypoints(open);
 
   const leg = $('tlLegend'); leg.replaceChildren();
   for(const t of TL_TYPES){
@@ -1471,6 +1699,87 @@ function buildTimeline(){
     row.append(...(left ? [pills, mid, date] : [date, mid, pills])); box.append(row);
   }
   if(!box.children.length) box.append(el('div', 'tlempty', open.length ? 'Nothing in these colours.' : 'Your timeline will appear as you speak.'));
+}
+
+/* ---- Home: the featured memory and the counters ----
+   Featured = one of the most important key points (tier 1), not from the last two days, rotating daily so the card is worth revisiting. */
+function pickFeatured(open){
+  const items = scoredKeypoints(open);
+  const pool = items.filter(i => i.tier === 1 && Date.now() - i.e.ts > 2 * 864e5);
+  const src = pool.length ? pool : items;
+  return src.length ? src[Math.floor(Date.now() / 864e5) % src.length] : null;
+}
+function renderHome(){
+  const open = entries.filter(e => isOpen(e) && e.text);
+  $('tlCount').textContent = String(entries.length); $('tlSub').textContent = entries.length === 1 ? 'memory' : 'memories';
+  const f = open.length ? pickFeatured(open) : null, card = $('cardFeat');
+  if(!f){
+    card.className = 'lcard feat sage'; $('featLabel').textContent = 'Featured memory';
+    $('featQuote').textContent = 'The moments that matter most will be featured here.'; $('featGo').textContent = 'Say something'; card.onclick = beginThink;
+  }else{
+    card.className = 'lcard feat ' + TYPE_TONE[typeOf(f.e)];
+    $('featLabel').textContent = 'Featured · ' + new Date(f.e.ts).toLocaleDateString([], { day:'numeric', month:'long' });
+    $('featQuote').textContent = '“' + f.kp + '”'; $('featGo').textContent = 'Revisit'; card.onclick = () => openReader(f.e.id);
+  }
+}
+
+/* ---- Universal search: by words and by meaning ----
+   Words: the query's words found in the text, key points and tags. Meaning: the query is embedded (OpenAI) and compared with every memory's
+   vector, so "when did I feel alive?" finds the Montserrat day without sharing a word. Results show the sentence that matched, not a summary. */
+const qEl = $('q'), resEl = $('searchRes');
+let qTimer = 0, qSeq = 0;
+function closeSearch(){ resEl.hidden = true; $('home').classList.remove('searching'); $('qClear').hidden = !qEl.value; }
+qEl.addEventListener('input', () => {
+  clearTimeout(qTimer); const v = qEl.value.trim(); $('qClear').hidden = !v;
+  if(!v){ closeSearch(); return; }
+  $('home').classList.add('searching'); qTimer = setTimeout(() => runSearch(v), 350);
+});
+qEl.addEventListener('keydown', e => { if(e.key === 'Enter'){ clearTimeout(qTimer); const v = qEl.value.trim(); if(v) runSearch(v); } });
+$('qClear').onclick = () => { qEl.value = ''; closeSearch(); qEl.focus(); };
+const hasWord = (hay, t) => t.length >= 4 ? hay.includes(' ' + t) : hay.includes(' ' + t + ' ');   // word prefix, or exact for short words
+async function searchMemories(q){
+  const open = entries.filter(e => isOpen(e) && e.text);
+  const orig = (q.toLowerCase().match(/[a-zà-ÿ0-9]{3,}/g) || []).filter(w => !STOP.has(w));
+  const toks = [...new Set(orig.map(Pipeline.norm))], phrase = Pipeline.norm(q);
+  let qv = null, vecs = null, semantic = false;
+  if(KEY.text() && q.length >= 3){
+    try{ [qv] = await embedTexts([q]); vecs = await ensureEmbeddings(open); semantic = true; }catch(err){ console.warn('search by words only', err); }
+  }
+  const hits = [];
+  for(const e of open){
+    const text = ' ' + Pipeline.norm(e.text) + ' ', extra = ' ' + Pipeline.norm((e.points || []).join(' ') + ' ' + Object.values(e.tags || {}).flat().join(' ')) + ' ';
+    let lex = phrase.length >= 4 && text.includes(' ' + phrase + ' ') ? 4 : 0;
+    for(const t of toks){ if(hasWord(text, t)) lex += 1; if(hasWord(extra, t)) lex += 1.5; }
+    const sem = semantic && vecs[e.id] ? Pipeline.cosine(qv, vecs[e.id]) : 0;
+    if(lex > 0 || sem >= .33) hits.push({ e, score:lex + (sem >= .25 ? sem * 8 : 0), sem });
+  }
+  hits.sort((a, b) => b.score - a.score);
+  return { hits:hits.slice(0, 8), orig, toks, semantic };
+}
+function snippetFor(e, toks){                                       // the sentence of the memory that best matches, verbatim
+  const sents = e.text.split(/(?<=[.!?])\s+/).filter(Boolean);
+  let best = null, bs = 0;
+  for(const s of sents){ const n = ' ' + Pipeline.norm(s) + ' '; const c = toks.filter(t => hasWord(n, t)).length; if(c > bs){ bs = c; best = s; } }
+  return best || (e.points && e.points[0]) || sents[0] || e.text;
+}
+function markWords(node, text, orig){
+  const re = orig.length ? new RegExp('(' + orig.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi') : null;
+  if(!re){ node.textContent = text; return; }
+  text.split(re).forEach((part, i) => { if(i % 2){ const m = el('mark'); m.textContent = part; node.append(m); } else node.append(document.createTextNode(part)); });
+}
+async function runSearch(q){
+  const seq = ++qSeq; resEl.hidden = false;
+  if(!resEl.children.length) resEl.replaceChildren(el('div', 'sres-none', 'Searching…'));
+  const r = await searchMemories(q); if(seq !== qSeq) return;
+  resEl.replaceChildren();
+  if(!r.hits.length){ resEl.append(el('div', 'sres-none', 'Nothing in your memories matches that.')); return; }
+  resEl.append(el('div', 'sres-h', r.hits.length + (r.hits.length === 1 ? ' memory' : ' memories') + (r.semantic ? ' · by words and meaning' : ' · by words')));
+  for(const h of r.hits){
+    const b = el('button', 'sres ' + TYPE_TONE[typeOf(h.e)]), head = el('div', 'sh'), sq = el('div', 'sq');
+    head.append(el('i'), document.createTextNode(new Date(h.e.ts).toLocaleDateString([], { weekday:'short', day:'numeric', month:'long', year:'numeric' }) + ' · ' + TYPE_NAME[typeOf(h.e)]));
+    markWords(sq, snippetFor(h.e, r.toks), r.orig);
+    b.append(head, sq); b.onclick = () => openReader(h.e.id); resEl.append(b);
+  }
 }
 
 $('openSettings').onclick = () => {
@@ -1855,7 +2164,6 @@ if(document.fonts) document.fonts.ready.then(placeAll);
 
 { const p = PROMPTS[new Date().getDate() % PROMPTS.length]; liven($('prompt'), p[0]); $('sub').textContent = p[1];
   document.querySelectorAll('h2, .logo, #hubTitle, #cardsTitle').forEach(h => liven(h)); }
-document.addEventListener('visibilitychange', () => { if(document.hidden && R.on) toast('Still recording…'); });
 (async function boot(){
   await store.init();
   applyView(store.get('view', 'net'));
