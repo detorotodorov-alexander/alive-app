@@ -16,11 +16,11 @@ window.ALIVE_CONFIG = {
 
   // 1) SPEECH TO TEXT (Whisper). OpenAI key used only to transcribe recordings.
   //    Paste it here  ↓  e.g. 'sk-proj-...'
-  openaiTranscribeKey: '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',
+  openaiTranscribeKey: '',
 
   // 2) TEXT PROCESSING. A second OpenAI key used for key points, tags, summaries, insights and reminder messages.
   //    Paste it here  ↓
-  openaiTextKey: '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',
+  openaiTextKey: '',
 
   //    Chat model used for text processing.
   textModel: 'gpt-4o-mini',
