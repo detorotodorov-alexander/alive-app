@@ -1,0 +1,1869 @@
+<!doctype html>
+<!-- Alive v3: working copy started from v2 (archive/v2-timeline-pipeline). index.html stays as the live v2 until v3 replaces it. Shares pipeline.js, config.js and api/. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#05060a">
+<title>Alive v3</title>
+<script src="config.js"></script>
+<script src="pipeline.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05060a; --ink:#eef2f7; --dim:#8a93a6; --line:rgba(255,255,255,.09);
+    --glass:rgba(18,22,34,.62); --calm:#3fd6c8; --warm:#ff8a4c; --violet:#8b7bff;
+  }
+  *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;touch-action:manipulation}
+  body{display:grid;place-items:center}
+
+  /* Galaxy S24 Ultra viewport: 412 x 915 CSS px (19.5:9). Fills a real phone, letterboxes elsewhere. */
+  #phone{
+    position:relative; overflow:hidden; background:#000;
+    aspect-ratio:412/915;
+    width:min(100vw, calc(100dvh * 412 / 915));
+    container-type:size;
+  }
+  @media (min-width:600px){ #phone{border-radius:6cqw;box-shadow:0 0 0 2px #1b1f2b,0 30px 80px #000a} }
+
+  #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #fallback{position:absolute;inset:0;display:none;
+    background:radial-gradient(circle at 50% 44%,#1d7f86 0,#0a1a24 30%,#05060a 70%)}
+
+  .layer{position:absolute;inset:0;display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 4cqw) 6cqw 0}
+  header{display:flex;align-items:center;justify-content:space-between;height:11cqw}
+  .logo{font-size:6.2cqw;font-weight:650;letter-spacing:.02em}
+  .logo i{font-style:normal;color:var(--calm)}
+  .icon-btn{width:10cqw;height:10cqw;border-radius:50%;border:1px solid var(--line);background:var(--glass);
+    color:var(--ink);display:grid;place-items:center;font-size:4.6cqw;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+
+  main{flex:1;position:relative;min-height:0}
+  .view{position:absolute;inset:0;display:none;flex-direction:column}
+  .view.on{display:flex}
+
+  /* Record view */
+  #v-record{justify-content:space-between;align-items:center;text-align:center}
+  .status{margin-top:5cqw;font-size:4cqw;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;min-height:6cqw}
+  .prompt{margin-top:2cqw;font-size:5.4cqw;line-height:1.3;font-weight:500;padding:0 2cqw;min-height:21cqw}
+  .live{width:100%;margin-bottom:4cqw;max-height:30cqw;overflow:auto;font-size:4.2cqw;line-height:1.45;
+    color:#cfd6e4;text-align:left;padding:3.5cqw 4cqw;border-radius:5cqw;background:var(--glass);
+    border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:none}
+  .live.has{display:block}
+  .rec-wrap{display:flex;flex-direction:column;align-items:center;gap:3cqw;padding-bottom:5cqw}
+  #rec{width:22cqw;height:22cqw;border-radius:50%;border:0;position:relative;color:#04120f;
+    background:linear-gradient(145deg,#6ff0e2,#2bb5b0);box-shadow:0 0 0 1.2cqw rgba(63,214,200,.18),0 2cqw 7cqw rgba(63,214,200,.35);
+    transition:transform .15s, background .3s, box-shadow .3s;display:grid;place-items:center}
+  #rec:active{transform:scale(.94)}
+  #rec .dot{width:7cqw;height:7cqw;border-radius:50%;background:#04120f;transition:all .25s}
+  #rec.on{background:linear-gradient(145deg,#ffb27a,#ff6b3d);box-shadow:0 0 0 1.4cqw rgba(255,138,76,.2),0 2cqw 8cqw rgba(255,107,61,.45)}
+  #rec.on .dot{border-radius:1.6cqw;width:6.5cqw;height:6.5cqw}
+  #rec:disabled{opacity:.5}
+  .timer{font-variant-numeric:tabular-nums;color:var(--dim);font-size:3.8cqw;height:5cqw}
+
+  /* Scroll views */
+  .scroll{flex:1;overflow-y:auto;padding:2cqw 0 4cqw;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  h2{font-size:6cqw;font-weight:600;margin:2cqw 0 3cqw}
+  .card{background:var(--glass);border:1px solid var(--line);border-radius:5cqw;padding:4cqw;margin-bottom:3cqw;
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .card .meta{font-size:3.2cqw;color:var(--dim);letter-spacing:.05em;margin-bottom:1.6cqw;display:flex;justify-content:space-between}
+  .card p{font-size:4cqw;line-height:1.5;color:#dfe5f1;white-space:pre-wrap}
+  .card h3{font-size:3.3cqw;letter-spacing:.14em;text-transform:uppercase;color:var(--calm);margin-bottom:2cqw;font-weight:600}
+  .card ul{padding-left:4.5cqw;font-size:4cqw;line-height:1.5;color:#dfe5f1}
+  .card li{margin-bottom:1.4cqw}
+  .big{font-size:5cqw;line-height:1.35;font-weight:500}
+  .chip{display:inline-block;padding:1.2cqw 3cqw;border-radius:99px;font-size:3.5cqw;margin:0 1.5cqw 1.5cqw 0;
+    background:rgba(139,123,255,.16);border:1px solid rgba(139,123,255,.35)}
+  .empty{color:var(--dim);text-align:center;font-size:4cqw;line-height:1.5;margin-top:20cqw;padding:0 6cqw}
+  .btn{width:100%;border:0;border-radius:99px;padding:4cqw;font-size:4.2cqw;font-weight:600;color:#06110f;
+    background:linear-gradient(135deg,#6ff0e2,#8b7bff);margin-bottom:3cqw}
+  .btn.ghost{background:var(--glass);color:var(--ink);border:1px solid var(--line)}
+  .btn:disabled{opacity:.5}
+  .del{background:none;border:0;color:var(--dim);font-size:3.2cqw}
+
+  /* Tab bar */
+  nav{display:flex;gap:1.5cqw;margin:0 -2cqw;padding:2cqw 2cqw calc(env(safe-area-inset-bottom) + 3cqw);}
+  nav button{flex:1;border:0;background:none;color:var(--dim);font-size:3.3cqw;padding:2cqw 0;border-radius:99px;
+    display:flex;flex-direction:column;align-items:center;gap:.6cqw;letter-spacing:.05em}
+  nav button b{font-size:5cqw;font-weight:400}
+  nav button.on{color:var(--ink);background:var(--glass);border:1px solid var(--line)}
+
+  /* Settings sheet */
+  #sheet{position:absolute;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:10}
+  #sheet.on{display:flex}
+  #sheet .pane{width:100%;background:#0d1019;border-top:1px solid var(--line);border-radius:6cqw 6cqw 0 0;
+    padding:5cqw 6cqw calc(env(safe-area-inset-bottom) + 6cqw);max-height:85%;overflow:auto}
+  .pane label{display:block;font-size:3.4cqw;color:var(--dim);margin:3cqw 0 1.4cqw}
+  .pane input{width:100%;background:#151a27;border:1px solid var(--line);border-radius:3cqw;padding:3.2cqw;color:var(--ink);font-size:4cqw}
+  .pane small{display:block;color:var(--dim);font-size:3.2cqw;line-height:1.45;margin:2cqw 0 4cqw}
+  .toast{position:absolute;left:50%;top:18cqw;transform:translate(-50%,-4cqw);background:#111623ee;border:1px solid var(--line);
+    padding:2.6cqw 5cqw;border-radius:99px;font-size:3.6cqw;opacity:0;pointer-events:none;transition:.3s;z-index:20;white-space:nowrap}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ===== Warm / cinematic theme (overrides above) ===== */
+  :root{--bg:#0a0905;--ink:#f3ecdc;--dim:#9a9078;--line:rgba(243,236,220,.12);
+    --glass:rgba(24,20,12,.55);--calm:#e8c48a;--warm:#ff9a4a;--violet:#c98a52}
+  html,body{font-family:"Lora",Georgia,"Times New Roman",serif}
+  button,input{font-family:inherit}
+  #photo{position:absolute;inset:0;background:#0b0a06}
+  #gl{mix-blend-mode:screen}
+  #vig{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 38%,transparent 35%,rgba(5,4,2,.75) 100%),
+               linear-gradient(to bottom,rgba(8,7,3,.55),transparent 22%,transparent 60%,rgba(8,7,3,.85))}
+  #grain{position:absolute;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+  #fallback{background:radial-gradient(circle at 50% 40%,#7a4a1c 0,#241608 32%,#0a0905 70%)}
+  .logo{font-weight:500}
+  .logo i{font-style:italic;color:var(--calm)}
+  #v-record{justify-content:space-between;align-items:stretch;text-align:left}
+  .status{margin-top:6cqw;font-size:3.5cqw;color:var(--calm);letter-spacing:.22em}
+  .prompt{margin-top:2cqw;font-size:10.5cqw;line-height:1.08;font-weight:400;letter-spacing:-.01em;min-height:34cqw;padding:0}
+  .sub{margin-top:3cqw;font-size:4cqw;line-height:1.5;color:#cdc3aa;max-width:78%}
+  .live{background:rgba(20,16,9,.5);color:#e6dcc2;font-style:italic}
+  .rec-wrap{padding-bottom:4cqw}
+  #rec{color:#1a0f04;background:linear-gradient(145deg,#f6dca8,#c98a52);
+    box-shadow:0 0 0 1.2cqw rgba(232,196,138,.16),0 2cqw 8cqw rgba(232,170,90,.35)}
+  #rec .dot{background:#1a0f04}
+  #rec.on{background:linear-gradient(145deg,#ffb27a,#e2552a);box-shadow:0 0 0 1.4cqw rgba(255,138,76,.22),0 2cqw 9cqw rgba(255,107,61,.5)}
+  h2{font-size:9cqw;font-weight:400;margin:3cqw 0 4cqw;letter-spacing:-.01em}
+  .card h3{font-size:3.2cqw;letter-spacing:.2em;font-weight:500}
+  .btn{background:linear-gradient(135deg,#f6dca8,#c98a52);color:#1a0f04}
+  .btn.ghost{background:var(--glass);color:var(--ink)}
+  .chip{background:rgba(232,196,138,.12);border-color:rgba(232,196,138,.35)}
+  #sheet .pane{background:#100d07}
+  .pane input{background:#17130b}
+  .toast{background:#17130bee}
+  /* straight edges, like the S24 Ultra's flat display */
+  @media (min-width:600px){ #phone{border-radius:0} }
+  .row{display:flex;align-items:center;justify-content:space-between;gap:3cqw;margin:3cqw 0 1cqw;font-size:4cqw}
+  .row input[type=checkbox]{width:6cqw;height:6cqw;accent-color:#c98a52}
+  .cap{display:flex;align-items:center;justify-content:center;gap:2cqw;margin-bottom:1cqw}
+  .cap button{background:none;border:1px solid var(--line);color:var(--dim);border-radius:99px;padding:1.6cqw 3.6cqw;font-size:3.4cqw}
+  .cap button.on{color:var(--calm);border-color:rgba(232,196,138,.5)}
+  .cap input{background:#17130b;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.4cqw 2.4cqw;font-size:3.4cqw;color-scheme:dark}
+  .cap input[hidden]{display:none}
+  button.chip{color:var(--ink);font-family:inherit;cursor:pointer}
+  button.chip.p{background:rgba(232,196,138,.16)} button.chip.w{background:rgba(255,154,74,.14);border-color:rgba(255,154,74,.4)}
+  button.chip.m{background:rgba(160,200,140,.12);border-color:rgba(160,200,140,.4)}
+  .pts{padding-left:4.5cqw;margin:0 0 2.4cqw;font-size:4cqw;line-height:1.45;color:#eadfc4}
+  .pts li{margin-bottom:1cqw}
+  .full{font-size:3.5cqw!important;color:var(--dim)!important;margin-bottom:2.4cqw}
+  .sealed{display:flex;align-items:center;gap:3cqw;color:var(--dim);font-style:italic;font-size:4cqw}
+  .link{background:none;border:0;color:var(--calm);font-size:3.4cqw;padding:1cqw 0;text-decoration:underline}
+  .status:empty{min-height:0;margin-top:3cqw}
+
+  /* Home: the title at the top, the memory web (or the timeline) in the middle, the task bar at the bottom.
+     The cards live in a sheet that opens from the task bar. */
+  .layer{display:block;padding:0}
+  #hero{position:absolute;z-index:1;left:6cqw;right:6cqw;top:calc(env(safe-area-inset-top) + 15cqw)}
+  #hero .prompt{min-height:0}                                     /* no reserved blank lines under the question */
+  #hero .sub{margin-top:1.8cqw}
+  #entries .empty{margin:12cqw 0}
+
+  /* The web: big, centred on screen, under the title text. Its own caption and colour scale are hidden (REMOVED.md). */
+  #webLayer,#timeline{transition:opacity .45s ease,visibility .45s}
+  #webLayer{position:absolute;left:0;right:0;top:50%;translate:0 -50%;z-index:0;padding:0 2cqw}
+  #webLayer .hub-title,#webLayer .hub-sub,#web .legend.scale{display:none}
+  #web{margin:0}
+  #web text{paint-order:stroke;stroke:rgba(5,4,2,.6);stroke-width:2.4px;stroke-linejoin:round}
+  /* view switch: data-view="net" shows the web, "time" shows the timeline */
+  #phone[data-view="time"] #webLayer{opacity:0;visibility:hidden;pointer-events:none}
+  #phone:not([data-view="time"]) #timeline{opacity:0;visibility:hidden;pointer-events:none}
+
+  /* Hidden for now (see REMOVED.md): patterns/insights group, the time-capsule switch and its note, the logo and settings gear.
+     Delete a selector here to bring that piece back. Settings is still reachable: press and hold the title. */
+  .blk,.armed,.topbar{display:none}
+  .topbar{position:absolute;left:0;right:0;top:0;z-index:8;padding:calc(env(safe-area-inset-top) + 4cqw) 6cqw 0;pointer-events:none}
+  .topbar > *{pointer-events:auto}
+  .topbar::before{content:"";position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 20cqw);z-index:-1;
+    background:linear-gradient(to bottom,rgba(7,6,3,.92),transparent);opacity:var(--s, 0);pointer-events:none}
+  /* ===== Task bar: Memories (cards) | Record | Web / Timeline switch ===== */
+  .dock{position:absolute;left:0;right:0;bottom:0;z-index:6;pointer-events:none;
+    padding:12cqw 4cqw calc(env(safe-area-inset-bottom) + 4cqw);
+    background:linear-gradient(to top,rgba(7,6,3,.7) 40%,rgba(7,6,3,0))}
+  .dock > *{pointer-events:auto}
+  .dock .live{margin-bottom:3cqw}
+  .armed{text-align:center;font-size:3.4cqw;font-style:italic;color:var(--calm);margin-bottom:2cqw}
+  .armed[hidden]{display:none}
+  .taskbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:2cqw;
+    padding:2.4cqw 3cqw;border-radius:8cqw;corner-shape:squircle;border:1px solid var(--line);
+    background:rgba(20,17,11,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    box-shadow:0 2cqw 8cqw rgba(0,0,0,.5)}
+  .tb{position:relative;display:flex;flex-direction:column;align-items:center;gap:.8cqw;background:none;border:0;
+    color:var(--dim);font-size:2.9cqw;letter-spacing:.06em;padding:1cqw 0;transition:color .2s}
+  .tb svg{width:6cqw;height:6cqw;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+  .tb:active,.tb.on{color:var(--ink)}
+  .tb .cnt{position:absolute;top:-.4cqw;right:calc(50% - 7.6cqw);min-width:4cqw;height:4cqw;padding:0 1cqw;border-radius:99px;
+    background:var(--warm);color:#1a0f04;font:600 2.5cqw/4cqw system-ui,sans-serif;text-align:center}
+  .taskbar .rec-wrap{position:relative;width:auto;display:flex;flex-direction:column;align-items:center;padding:0}
+  #rec{width:15cqw;height:15cqw;margin-top:-7cqw}                 /* rises out of the bar */
+  #rec .dot{width:5cqw;height:5cqw}
+  #rec.on .dot{width:4.6cqw;height:4.6cqw}
+  .taskbar .timer{position:absolute;bottom:-4.4cqw;height:auto;font-size:3.2cqw}
+
+  /* Sheets (memories and reader). The home screen recedes behind them. */
+  #webLayer,#timeline,.dock,#gl,#hero,.topbar{transition:opacity .45s ease,visibility .45s,scale .6s cubic-bezier(.2,.8,.2,1),translate .6s cubic-bezier(.2,.8,.2,1),filter .6s ease}
+  #phone.sheeted .dock,#phone.sheeted #hero,#phone.sheeted .topbar,#phone.sheeted #webLayer,#phone.sheeted #timeline{scale:.93}
+  #phone.sheeted .dock,#phone.sheeted #webLayer,#phone.sheeted #timeline{filter:brightness(.45)}
+  #phone.sheeted #gl{filter:brightness(.5)}
+  #hubScrim{position:absolute;inset:0;z-index:12;pointer-events:none}
+  #phone.sheeted #hubScrim{pointer-events:auto}
+  #hubScrim{background:rgba(0,0,0,0);transition:background .6s ease}
+  #phone.sheeted #hubScrim{background:rgba(0,0,0,.3)}
+  #hub,#reader,#cardsSheet{position:absolute;left:3cqw;right:3cqw;bottom:3cqw;height:82cqh;z-index:14;border-radius:9cqw;overflow:hidden;
+    display:flex;flex-direction:column;transform:translateY(112%);transition:transform .65s cubic-bezier(.2,.8,.2,1);
+    background:radial-gradient(120% 72% at 50% 38%,#0a0806 26%,#3a3220 60%,#7d6c3e 100%);
+    box-shadow:0 -2cqw 10cqw rgba(0,0,0,.55)}
+  #hub.on,#reader.on,#cardsSheet.on{transform:none}
+  #reader{z-index:15}                                              /* the transcript opens on top of the memories sheet */
+  .grab{flex:none;padding:3.2cqw 0 2cqw;touch-action:none;cursor:grab}
+  .grab i{display:block;width:14cqw;height:1.2cqw;border-radius:9px;background:rgba(243,236,220,.42);margin:0 auto}
+  .hub-scroll{flex:1;overflow-y:auto;padding:0 6cqw 6cqw;scrollbar-width:none;overscroll-behavior:contain}
+  .hub-scroll::-webkit-scrollbar{display:none}
+  .hub-title{text-align:center;font-size:6.6cqw;margin-top:1cqw}
+  .hub-sub{text-align:center;color:#d6cba8;font-size:3.5cqw;line-height:1.45;margin:1.5cqw 5cqw 0}
+  #web{margin:1cqw -2cqw 2cqw}
+  #web svg{width:100%;height:auto;display:block;overflow:visible}
+  #web text{font-family:inherit;font-size:9.5px;fill:#efe6cf;pointer-events:none}
+  #web .nd{cursor:pointer}
+  .legend{display:flex;align-items:center;justify-content:center;gap:2.4cqw;font-size:3cqw;color:#bdb18f;margin-bottom:5cqw}
+  .legend i{display:block;width:26cqw;height:1.4cqw;border-radius:9px;background:linear-gradient(90deg,#8a8366,#e0a35a,#fff0d0)}
+  .hub-h{font-size:3.2cqw;letter-spacing:.2em;text-transform:uppercase;color:var(--calm);font-weight:500;margin:2cqw 0 3cqw}
+  .hub-sec .btn{margin-bottom:4cqw}
+  .hub-foot{flex:none;padding:3cqw 4cqw calc(env(safe-area-inset-bottom) + 4cqw);
+    background:linear-gradient(to top,rgba(10,8,6,.9) 55%,transparent)}
+  .capdate{display:flex;align-items:center;justify-content:space-between;color:#d6cba8;font-size:3.6cqw;margin:0 3cqw 2.4cqw}
+  .capdate[hidden]{display:none}
+  .capdate input{background:#17130b;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.6cqw 2.6cqw;font-size:3.6cqw;color-scheme:dark}
+  .capdate input[hidden]{display:none}
+  .pill{width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.8cqw 1.8cqw 1.8cqw 6cqw;
+    border-radius:99px;border:0;background:rgba(14,12,8,.8);color:var(--ink);font-size:3.9cqw;
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .pill .plus{flex:none;width:9.4cqw;height:9.4cqw;border-radius:50%;background:#f6efe0;color:#1a0f04;display:grid;place-items:center;font-size:5.4cqw;line-height:1}
+  .pill.on .plus{background:#ffb27a}
+
+  /* ===== Recording cards: soft gradient squircles with a dark glowing core, like the widget reference ===== */
+  .egrid{display:grid;grid-template-columns:1fr 1fr;gap:3cqw}
+  .wcard{position:relative;isolation:isolate;overflow:hidden;cursor:pointer;color:#fff;
+    aspect-ratio:1 / .538;padding:3cqw 3.4cqw;border-radius:8.5cqw;corner-shape:squircle;
+    display:flex;flex-direction:column;justify-content:space-between;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none;
+    --c1:#8fb09f;--c2:#6c8a7b;--blob:#05070a;--bx:46%;--by:62%}
+  .wcard::before{content:"";position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(ellipse 64% 54% at var(--bx) var(--by),var(--blob) 0%,transparent 100%),
+               linear-gradient(172deg,var(--c1),var(--c2))}
+  .wcard.wide{grid-column:1 / -1;aspect-ratio:auto;height:22.1cqw;border-radius:7cqw}
+  .wcard.sage{--c1:#93b4a2;--c2:#6a887a}
+  .wcard.rose{--c1:#f3add3;--c2:#c4538f;--blob:#4d0b33}
+  .wcard.cobalt{--c1:#4a67e6;--c2:#1b2e98;--blob:#02030a}
+  .wcard.ember{--c1:#e8703f;--c2:#c04a1f;--blob:#2c47dc;--bx:76%;--by:66%}
+  .wcard.plum{--c1:#bd6c7c;--c2:#684862;--blob:#100a10}
+  .wcard.wide::before{background:radial-gradient(ellipse 58% 70% at 30% 70%,var(--blob) 0%,transparent 100%),linear-gradient(176deg,var(--c1),var(--c2))}
+  .wl{display:flex;align-items:baseline;gap:1.6cqw;white-space:nowrap;overflow:hidden}
+  .wl b{font-size:2.5cqw;letter-spacing:.16em;text-transform:uppercase;font-weight:600;opacity:.95}
+  .wl span{font-size:2.7cqw;opacity:.8;overflow:hidden;text-overflow:ellipsis}
+  .wb{display:flex;align-items:baseline;gap:2.2cqw;min-width:0}
+  .wk{flex:1;min-width:0;font-size:2.9cqw;opacity:.93;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+  /* per-type gauges */
+  .ui{position:relative;height:4.8cqw;display:flex;align-items:center}
+  .mk2{position:absolute;top:.2cqw;bottom:.2cqw;width:0;border-left:.45cqw solid #f2ee6a;transform:translateX(-50%);pointer-events:none}
+  .mk2::before{content:"";position:absolute;top:-.5cqw;left:-1.4cqw;border:1.4cqw solid transparent;border-top:2cqw solid #f2ee6a;border-bottom:0}
+  .ui-mood .trk{flex:1;height:2.2cqw;border-radius:9px;background:linear-gradient(90deg,rgba(255,255,255,.16),rgba(255,255,255,.5) 55%,#ffd9aa)}
+  .ui-people .av{width:4.8cqw;height:4.8cqw;border-radius:50%;display:grid;place-items:center;font-size:2.4cqw;font-weight:600;
+    background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.55);backdrop-filter:blur(2px)}
+  .ui-people .av + .av{margin-left:-2.2cqw}
+  .ui-plan{justify-content:space-between;padding:0 .5cqw}
+  .ui-plan i{width:.5cqw;height:42%;border-radius:2px;background:rgba(255,255,255,.55)}
+  .ui-plan i.tall{height:70%;background:rgba(255,255,255,.8)}
+  .ui-work{gap:.8cqw}
+  .ui-work i{flex:1;height:2.6cqw;border-radius:.9cqw;background:rgba(255,255,255,.24)}
+  .ui-work i.f{background:#fff}
+  .ui-voice{justify-content:space-evenly}
+  .ui-voice i{width:1.7cqw;height:1.7cqw;border-radius:50%;background:rgba(255,255,255,.7)}
+  .ui-voice i:nth-child(2),.ui-voice i:nth-child(4){transform:scale(1.5)}
+  .wv{display:flex;align-items:baseline;gap:1.4cqw}
+  .wv{flex:none}
+  .wv b{font-size:6.6cqw;font-weight:300;letter-spacing:-.02em;line-height:1}
+  .wv small{font-size:2.8cqw;opacity:.88}
+  .wcap{position:absolute;right:4cqw;bottom:4.2cqw;max-width:46%;text-align:right;font-size:3.5cqw;line-height:1.3;opacity:.92;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .wplay{position:absolute;inset:1.5cqw;border-radius:50%;border:0;background:#fff;color:#14110a;font-size:3.1cqw;
+    display:grid;place-items:center;padding:0 0 0 .3cqw;font-family:system-ui,sans-serif}
+  .wplay:disabled{opacity:.4}
+  .wcard.sealed .wv b{font-size:5.4cqw}
+  /* the waveform */
+  .ticks{position:relative;height:9.5cqw;display:flex;align-items:center;justify-content:space-between;gap:.35cqw}
+  .ticks i{flex:1;min-width:1px;max-width:.9cqw;border-radius:2px;background:rgba(255,255,255,.58);transition:background .2s}
+  .ticks i.on{background:#f2ee6a}
+  .ticks.dim i{opacity:.32}
+  .mk{position:absolute;top:-1.2cqw;bottom:-1.2cqw;left:0;width:0;border-left:.45cqw solid #f2ee6a;opacity:0;transition:opacity .25s;pointer-events:none}
+  .mk::before{content:"";position:absolute;top:-.6cqw;left:-1.45cqw;border:1.45cqw solid transparent;border-top:2.1cqw solid #f2ee6a;border-bottom:0}
+  .wcard.cur .mk{opacity:1}
+  .ticks.big{height:19cqw;margin:4cqw 0 2cqw;gap:.45cqw;cursor:pointer}
+  .ticks.big i{max-width:1.4cqw;background:rgba(243,236,220,.5)}
+  .ticks.big i.on{background:#f2ee6a}
+  .ticks.big .mk{top:-2.2cqw;bottom:-2.2cqw}
+  #readTicks.cur .mk{opacity:1}
+  /* reader */
+  .rctl{display:flex;align-items:center;gap:3cqw;margin-bottom:5cqw;font-size:3.7cqw;color:#d6cba8;font-variant-numeric:tabular-nums}
+  .rctl .wplay{position:static;width:11cqw;height:11cqw;inset:auto;font-size:3.6cqw;padding-left:.4cqw}
+  .trans{font-size:4.5cqw;line-height:1.7;color:#a99f84}
+  .tw{transition:color .3s,text-shadow .3s;cursor:pointer}
+  .tw.rd{color:#f4ecd8}
+  .tw.now{color:#ffe08a;text-shadow:0 0 14px rgba(255,214,120,.5)}
+  .trans.plain{color:#efe6cf}
+  .dimp{color:#a99f84;font-style:italic}
+  #readEcho{margin-top:5cqw}
+  .echolink .ehead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.4cqw}
+  .echolink .ehead em{font-size:3cqw;color:var(--dim);letter-spacing:.06em}
+  .echolink .eq{font-family:"Lora",Georgia,serif;font-size:3.7cqw;line-height:1.45;color:#e9dfc6}
+  .echolink .eq.now{margin-top:1.2cqw;color:#ffe9b0}
+  .echolink{display:block}
+  .echo{font-size:4.4cqw;line-height:1.6;color:#f4ecd8;margin-bottom:3cqw}
+  .echolink{display:flex;gap:3cqw;align-items:baseline;width:100%;text-align:left;background:rgba(243,236,220,.06);
+    border:1px solid var(--line);border-radius:4cqw;padding:3cqw 4cqw;margin-bottom:2cqw;color:#e9dfc6;font-size:3.6cqw}
+  .echolink b{flex:none;font-weight:500;color:var(--calm);font-size:3.3cqw;letter-spacing:.04em}
+  #readPts{margin-top:5cqw}
+  #readPts .pts{color:#f1e7cd}
+  .rtags{margin-top:1cqw}
+  .rbtns{margin-top:5cqw}
+
+  /* Living type: every letter levitates on a phase-shifted wave while one warm gradient drifts through the whole line.
+     JS (liven/place) splits text into letters and gives each its x-offset (--x) and the line width (--w),
+     so the per-letter gradients line up as a single continuous one. */
+  .alive .w{display:inline-block;white-space:nowrap}
+  /* background-clip:text only paints inside the box, so pad it past the ascenders/descenders (and italic overhang),
+     then cancel the padding with negative margins so layout is unchanged */
+  .alive .l{display:inline-block;color:var(--calm);padding:.22em .06em;margin:-.22em -.06em;
+    background-image:linear-gradient(90deg,#f6e7c4,#e8c48a,#ff9a4a,#e9a6a0,#e8c48a,#f6e7c4);
+    background-size:var(--w,300px) 100%;background-repeat:repeat-x;
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    animation:lift 5.5s ease-in-out infinite alternate, drift 16s linear infinite;
+    animation-delay:calc(var(--i) * -.32s), 0s;
+    will-change:transform}
+  @keyframes lift{from{transform:translateY(.05em) rotate(-.5deg)}to{transform:translateY(-.07em) rotate(.5deg)}}
+  @keyframes drift{from{background-position:calc(var(--x,0px) * -1) 0}to{background-position:calc(var(--x,0px) * -1 + var(--w,300px)) 0}}
+  @media (prefers-reduced-motion:reduce){ .alive .l{animation:none} }
+
+  /* ===== Timeline: the web, in a line. A spine down the middle, newest on top; each memory hangs its key points off it.
+     Colour = type of memory (same palette as the cards). Size = importance in three tiers (large, medium, small). ===== */
+  #timeline{position:absolute;left:0;right:0;z-index:2;top:calc(env(safe-area-inset-top) + 59cqw);bottom:30cqw;
+    display:flex;flex-direction:column;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  #tlLegend{flex:none;display:flex;justify-content:center;align-items:center;gap:1.6cqw;padding:0 4cqw 2.4cqw;flex-wrap:wrap}
+  #tlLegend button{display:flex;align-items:center;gap:1.4cqw;background:rgba(20,17,11,.6);border:1px solid var(--line);color:#e9dfc6;
+    border-radius:99px;padding:1.2cqw 2.8cqw;font-size:2.9cqw;letter-spacing:.04em;transition:opacity .2s}
+  #tlLegend button i{width:2.6cqw;height:2.6cqw;border-radius:50%;background:var(--c1)}
+  #tlLegend button.off{opacity:.38}
+  #tlLegend .sizes{display:flex;align-items:center;gap:1cqw;margin-left:1cqw;color:var(--dim);font-size:2.7cqw}
+  #tlLegend .sizes b{display:block;border-radius:50%;background:var(--dim)}
+  #tlScroll{flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:0 4cqw;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 7%,#000 90%,transparent 100%);
+            mask-image:linear-gradient(to bottom,transparent 0,#000 7%,#000 90%,transparent 100%)}
+  #tlScroll::-webkit-scrollbar{display:none}
+  #tlList{position:relative;padding:3cqw 0 16cqw}
+  #tlList::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;
+    background:linear-gradient(to bottom,transparent,rgba(243,236,220,.3) 4%,rgba(243,236,220,.3) 96%,transparent)}
+  .tlmonth{position:relative;text-align:center;margin:1cqw 0 4cqw;font-size:2.7cqw;letter-spacing:.2em;text-transform:uppercase;color:var(--calm)}
+  .tlmonth span{background:#0a0905;padding:0 3cqw}
+  .tlrow{display:grid;grid-template-columns:1fr 7cqw 1fr;align-items:center;margin-bottom:4.6cqw}
+  .tlmid{display:grid;place-items:center}
+  .tldot{width:3.4cqw;height:3.4cqw;border-radius:50%;background:var(--c1);box-shadow:0 0 0 1cqw rgba(255,255,255,.08),0 0 3cqw var(--c1)}
+  .tlside{display:flex;flex-direction:column;gap:1.8cqw;min-width:0}
+  .tlside.l{align-items:flex-end}
+  .tlside.r{align-items:flex-start}
+  .tldate{font-size:2.9cqw;color:var(--dim);letter-spacing:.06em;padding:0 1cqw}
+  .kp{position:relative;border:0;color:#fff;text-align:left;font-family:inherit;line-height:1.25;
+    background:linear-gradient(160deg,var(--c1),var(--c2));max-width:100%}
+  .kp::after{content:"";position:absolute;top:50%;width:3.2cqw;height:1px;background:var(--c1)}
+  .tlside.l .kp::after{left:100%}
+  .tlside.r .kp::after{right:100%}
+  .kp.t1{font-size:4cqw;font-weight:500;padding:3cqw 3.6cqw;border-radius:5cqw}
+  .kp.t2{font-size:3.3cqw;padding:2.2cqw 3cqw;border-radius:4cqw}
+  .kp.t3{font-size:2.8cqw;opacity:.88;padding:1.5cqw 2.4cqw;border-radius:3cqw}
+  .sage{--c1:#93b4a2;--c2:#6a887a} .rose{--c1:#f3add3;--c2:#c4538f} .cobalt{--c1:#4a67e6;--c2:#1b2e98}
+  .ember{--c1:#e8703f;--c2:#c04a1f} .plum{--c1:#bd6c7c;--c2:#684862}
+  .tlempty{color:var(--dim);text-align:center;font-style:italic;margin-top:12cqw;font-size:3.6cqw}
+</style>
+</head>
+<body>
+<div id="phone">
+  <div id="photo"></div>
+  <canvas id="gl"></canvas>
+  <div id="fallback"></div>
+  <div id="vig"></div>
+  <div id="grain"></div>
+
+  <div class="layer">
+    <!-- Title on top, the memory web (or the timeline) in the middle, the task bar at the bottom. Cards live in a sheet. -->
+    <div id="hero">
+      <div class="status" id="status"></div>
+      <div class="prompt" id="prompt"></div>
+      <div class="sub" id="sub"></div>
+    </div>
+
+    <div id="webLayer">
+      <div class="hub-title" id="hubTitle">Your web</div>
+      <div class="hub-sub">The words and labels your days keep returning to. Brighter means more.</div>
+      <div id="web"></div>
+    </div>
+
+    <div id="timeline" aria-label="Timeline">
+      <div id="tlLegend"></div>
+      <div id="tlScroll"><div id="tlList"></div></div>
+    </div>
+
+    <header class="topbar">
+      <div class="logo">Al<i>i</i>ve</div>
+      <button class="icon-btn" id="openSettings" aria-label="Settings">⚙</button>
+    </header>
+
+    <!-- Parked: hidden pieces whose code still runs (patterns / insights, the time-capsule switch). See REMOVED.md. -->
+    <div id="parked" hidden>
+      <section class="blk">
+        <h3 class="hub-h">Patterns</h3>
+        <button class="btn" id="analyze">Find my patterns</button>
+        <div id="insightOut"></div>
+      </section>
+      <section class="blk capblk">
+        <div class="capdate" id="capRow" hidden><span>Opens on</span><input type="date" id="capDate" hidden></div>
+        <button class="pill" id="capBtn"><span id="capLabel">Seal next entry as a time capsule</span><span class="plus" id="capPlus">+</span></button>
+      </section>
+    </div>
+
+    <div class="dock">
+      <div class="live" id="live"></div>
+      <div class="armed" id="armed" hidden></div>
+      <nav class="taskbar" aria-label="Task bar">
+        <button class="tb" id="cardsBtn" aria-label="Open memories">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2.2"/></svg>
+          <span>Memories</span><b class="cnt" id="cardsCount" hidden></b>
+        </button>
+        <div class="rec-wrap">
+          <button id="rec" aria-label="Record"><span class="dot"></span></button>
+          <div class="timer" id="timer"></div>
+        </div>
+        <button class="tb" id="viewBtn" aria-label="Switch between web and timeline">
+          <svg id="viewIcon" viewBox="0 0 24 24" aria-hidden="true"></svg>
+          <span id="viewLabel">Timeline</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Memories: every card, in a sheet that opens from the task bar -->
+  <section id="cardsSheet" aria-label="Memories">
+    <div class="grab" id="cardsGrab" aria-label="Close"><i></i></div>
+    <div class="hub-scroll">
+      <div class="hub-title" id="cardsTitle">Memories</div>
+      <div id="entries"></div>
+    </div>
+  </section>
+
+  <div id="hubScrim"></div>
+
+  <!-- Reader: the recording and its transcript -->
+  <section id="reader" aria-label="Recording">
+    <div class="grab" id="readGrab" aria-label="Close"><i></i></div>
+    <div class="hub-scroll">
+      <div class="hub-title" id="readTitle"></div>
+      <div class="hub-sub" id="readSub"></div>
+      <div id="readTicks"></div>
+      <div class="rctl"><button class="wplay" id="readPlay" aria-label="Play">▶</button><span id="readTime">0:00</span></div>
+      <h3 class="hub-h">Transcript</h3>
+      <div class="trans" id="readText"></div>
+      <div id="readEcho"></div>
+      <div id="readPts"></div>
+      <div class="rbtns"><button class="btn ghost" id="readAction"></button><button class="btn ghost" id="readDelete">Delete</button></div>
+    </div>
+  </section>
+
+  <div id="sheet"><div class="pane">
+    <h2>Settings</h2>
+    <label>OpenAI API key (Whisper transcription)</label>
+    <input id="kOpenAI" type="password" placeholder="sk-…" autocomplete="off">
+    <label>OpenAI API key (text: key points, insights)</label>
+    <input id="kOpenAIText" type="password" placeholder="sk-…" autocomplete="off">
+    <small id="keysShared" hidden>This app uses shared project keys (set in config.js), so you don't need to enter any here.</small>
+    <div class="row"><span>Gentle reminders</span><input id="nudges" type="checkbox"></div>
+    <small>At most one quiet message every couple of days, only when things look calm: few notifications, nothing on your calendar. No streaks, no guilt.</small>
+    <label>Google Calendar access token (optional)</label>
+    <input id="kGcal" type="password" placeholder="ya29.…" autocomplete="off">
+    <small>Prototype stand-in for a proper Google sign-in. Needs the calendar.freebusy scope.</small>
+    <button class="btn ghost" id="previewNudge">Preview a reminder now</button>
+    <label>GitHub repository (private), owner/name</label>
+    <input id="kRepo" placeholder="you/alive-journal" autocomplete="off" autocapitalize="off">
+    <label>GitHub token (fine-grained, Contents read/write on that repo only)</label>
+    <input id="kGhToken" type="password" placeholder="github_pat_…" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+    <label>Encryption passphrase (recommended)</label>
+    <input id="kPass" type="password" placeholder="never leaves this device" autocomplete="new-password">
+    <small id="syncState">Entries are saved to your private repo. With a passphrase they are encrypted (AES-GCM) before upload, so GitHub only ever sees ciphertext. Lose the passphrase and they are unrecoverable.</small>
+    <button class="btn ghost" id="syncNow">Sync now</button>
+    <small>Prototype only: keys stay in this browser's IndexedDB and calls go straight from the page. Move them behind a server before shipping. Without keys, Alive falls back to the browser's built-in speech recognition and a local heuristic analysis.</small>
+    <small id="storeState"></small>
+    <button class="btn" id="saveSettings">Save</button>
+    <button class="btn ghost" id="sample">Load sample entries</button>
+    <button class="btn ghost" id="wipe">Delete all data</button>
+    <button class="btn ghost" id="closeSettings">Close</button>
+  </div></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script id="vs" type="x-shader/x-vertex">
+attribute vec2 a;
+void main(){ gl_Position = vec4(a, 0.0, 1.0); }
+</script>
+<script id="fs" type="x-shader/x-fragment">
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2  uRes;
+uniform float uTime;   // wrapped by JS to keep precision on mobile GPUs
+uniform float uLevel;  // smoothed mic level 0..1
+uniform float uRec;    // 0 idle .. 1 recording
+uniform float uProc;   // 0..1 processing
+
+float hash(vec2 p){
+  vec3 p3 = fract(vec3(p.xyx) * .1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+float noise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  f = f*f*(3.0 - 2.0*f);
+  return mix(mix(hash(i), hash(i+vec2(1,0)), f.x),
+             mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
+}
+float fbm(vec2 p){
+  float v = 0.0, a = .5;
+  for(int i=0;i<4;i++){ v += a*noise(p); p = p*2.03 + vec2(17.1, 9.2); a *= .5; }
+  return v;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / uRes;
+  float asp = uRes.x / uRes.y;
+  vec2 p = (uv - vec2(.5, .48)) * vec2(asp, 1.0);
+  float t = uTime * .15;
+
+  // nebula backdrop
+  vec3 col = vec3(.012,.011,.006);
+  float c1 = fbm(p*2.0 + vec2(t, -t*.7));
+  float c2 = fbm(p*3.1 - vec2(t*.8, t) + 4.0);
+  // warm firelight palette: amber idle -> ember orange while recording
+  vec3 calm = vec3(.95,.66,.32), warm = vec3(1.0,.38,.14), vio = vec3(.55,.30,.12);
+  vec3 tint = mix(calm, warm, uRec);
+  // slow drifting light shafts from above, like the reference photo
+  float shaft = smoothstep(.55, 0., abs(p.x*1.3 + .25*sin(p.y*2.0 + t*3.0) - .05)) * smoothstep(-.5,.6,p.y);
+  col += tint * shaft * (.05 + .08*uLevel) * (.5 + c1);
+  col += tint * smoothstep(.45,.95,c1) * (.10 + .20*uLevel);
+  col += vio  * smoothstep(.45,.95,c2) * .12;
+
+  // floating embers / dust particles (3 depth layers)
+  for(int i=0;i<24;i++){
+    float fi = float(i);
+    float lay = mod(fi,3.0);
+    vec2 h = vec2(hash(vec2(fi,1.7)), hash(vec2(fi,8.3)));
+    float spd = (.012 + .02*h.y) * (1.0 + lay*.5) * (1.0 + uLevel*2.5 + uRec);
+    vec2 pos = vec2((h.x-.5)*asp*1.1 + .03*sin(uTime*(.3+h.y) + fi), fract(h.y + uTime*spd) - .44);
+    float sz = (.0022 + .0035*h.x) * (1.0 + lay*.7);
+    float dd = length(p - pos);
+    float tw = .55 + .45*sin(uTime*(1.2+h.x*2.0) + fi*3.0);
+    float edge = smoothstep(1.0, .6, abs(pos.y+.02)*2.0);
+    col += mix(vec3(1.0,.82,.5), tint, .4) * (sz / (dd*dd*900.0 + sz)) * .35 * tw * edge * (1.0 + uLevel*1.5);
+  }
+
+  // processing: a soft pulse of light in the middle of the scene (the ring that used to show this is gone)
+  col += tint * uProc * (.07 + .04*sin(uTime*3.0)) * exp(-dot(p, p) * 5.0);
+
+  col *= 1.0 - .4 * dot(uv - .5, uv - .5);
+  col = max(col, 0.0);
+
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script>
+'use strict';
+/* ============ Config ============ */
+const CFG = window.ALIVE_CONFIG || {};                              // shared project config, see config.js
+const MODELS = { transcribe:'whisper-1', text:CFG.textModel || 'gpt-4o-mini' };
+// The shared project keys in config.js win. Anything typed in Settings is only a fallback for local testing.
+// With the Alive server (config.js -> apiURL) the keys live on the server and every AI and database call goes through it.
+const API = (CFG.apiURL || '').replace(/\/+$/, '');
+const KEY = {
+  transcribe: () => API ? 'server' : (CFG.openaiTranscribeKey || settings.openai),
+  text: () => API ? 'server' : (CFG.openaiTextKey || settings.openaiText),
+  shared: () => !!(API || CFG.openaiTranscribeKey || CFG.openaiTextKey)
+};
+async function llm(system, user, { json = false, max = 600, temp = .4 } = {}){   // one place for every text-processing call (OpenAI chat)
+  const r = await fetch(API ? API + '/chat' : 'https://api.openai.com/v1/chat/completions', {
+    method:'POST', headers:API ? { 'content-type':'application/json' } : { 'content-type':'application/json', Authorization:'Bearer ' + KEY.text() },
+    body:JSON.stringify({ model:MODELS.text, max_tokens:max, temperature:temp,
+      ...(json ? { response_format:{ type:'json_object' } } : {}),
+      messages:[{ role:'system', content:system }, { role:'user', content:user }] }) });
+  if(!r.ok) throw new Error((await r.json().catch(() => ({}))).error?.message || r.status);
+  return (await r.json()).choices[0].message.content;
+}
+const PROMPTS = [
+  ['Are you alive or just existing?', 'Say it out loud. Naming it is the first step to lightening it.'],
+  ['What gave you energy today?', 'And what quietly drained it? Both are worth hearing.'],
+  ['What did you avoid, and why?', 'Avoidance is often a signpost to something that matters.'],
+  ['Would you repeat today for a year?', 'Speak honestly. Nobody is listening but you.'],
+  ['What do you want more of?', 'Tomorrow is a blank page. Start with a breath.']
+];
+
+/* ============ Storage ============ */
+/* No localStorage. Source of truth is a private GitHub repo (one JSON file per entry under entries/).
+   IndexedDB only holds an offline cache plus your settings, and is hydrated into `mem` at boot. */
+const mem = {};
+const idb = {
+  db:null,
+  async open(){
+    this.db = await new Promise((res, rej) => {
+      const r = indexedDB.open('alive', 2);
+      r.onupgradeneeded = () => {
+        for(const s of ['kv', 'audio']) if(!r.result.objectStoreNames.contains(s)) r.result.createObjectStore(s);
+      };
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+    await new Promise(res => {
+      const c = this.db.transaction('kv').objectStore('kv').openCursor();
+      c.onsuccess = () => { const cur = c.result; if(cur){ mem[cur.key] = cur.value; cur.continue(); } else res(); };
+      c.onerror = () => res();
+    });
+  },
+  put(k, v){ try{ this.db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); }catch{} }
+};
+/* Recordings: online in the shared database (uploaded with their entry during sync), with a local IndexedDB copy as a cache
+   so playback is instant after the first listen. Any device can play or transcribe any recording. */
+const audioMem = new Map();
+const AudioStore = {
+  async put(id, blob){                                            // local cache only; the upload happens in syncNow
+    audioMem.set(id, blob);
+    if(!idb.db) return;
+    try{ await new Promise((res, rej) => { const t = idb.db.transaction('audio', 'readwrite'); t.objectStore('audio').put(blob, id); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+    catch(err){ console.warn('could not store audio', err); }
+  },
+  async getLocal(id){
+    if(audioMem.has(id)) return audioMem.get(id);
+    if(!idb.db) return null;
+    return new Promise(res => { try{ const r = idb.db.transaction('audio').objectStore('audio').get(id); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); }catch{ res(null); } });
+  },
+  async get(id){                                                  // local cache first, then the shared database
+    const local = await this.getLocal(id); if(local) return local;
+    if(!Backend.ready()) return null;
+    try{ const b = await Backend.getAudio(id); if(b) this.put(id, b); return b; }
+    catch(err){ console.warn('could not download audio', err); return null; }
+  },
+  async has(id){ return !!(await this.get(id)); },
+  del(id){ audioMem.delete(id); try{ if(idb.db) idb.db.transaction('audio', 'readwrite').objectStore('audio').delete(id); }catch{} }
+};
+
+/* Storage ladder: IndexedDB, then localStorage as a fallback, then memory. Settings are always mirrored to both, so they
+   survive even if IndexedDB is flaky. Browsers block ALL storage on data:/sandboxed pages; store.mode reports what works. */
+const ls = {
+  get(k){ try{ const v = localStorage.getItem('alive.' + k); return v == null ? undefined : JSON.parse(v); }catch{ return undefined; } },
+  put(k, v){ try{ localStorage.setItem('alive.' + k, JSON.stringify(v)); return true; }catch{ return false; } }
+};
+const store = {
+  mode:'memory only',
+  get(k, d){ return k in mem && mem[k] != null ? mem[k] : d; },
+  set(k, v, quiet){
+    mem[k] = v;
+    const viaIdb = !!idb.db;
+    if(viaIdb) idb.put(k, v);
+    if(!viaIdb || k === 'settings' || k === 'onboarded') ls.put(k, v);
+    if(k === 'entries' && !quiet) scheduleSync();
+  },
+  async init(){
+    try{ await idb.open(); this.mode = 'IndexedDB'; }catch(err){ console.warn('IndexedDB unavailable', err); }
+    for(const k of ['entries', 'settings', 'insights', 'lastNudge', 'remote', 'onboarded']){
+      if(mem[k] == null){ const v = ls.get(k); if(v !== undefined) mem[k] = v; }
+    }
+    if(this.mode !== 'IndexedDB') this.mode = ls.put('probe', 1) ? 'localStorage' : 'memory only';
+    try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch{}   // ask the browser not to evict it
+  }
+};
+let entries = [];
+let settings = { openai:'', openaiText:'', nudges:false, gcal:'', ghRepo:'', ghToken:'', ghPass:'' };
+const $ = id => document.getElementById(id);
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('on'), 2400); }
+
+/* ============ Shader ============ */
+const S = { level:0, rec:0, proc:0, targetLevel:0, recT:0, procT:0 };
+(function initGL(){
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl', { antialias:false, alpha:false, powerPreference:'low-power' });
+  if(!gl){ canvas.style.display = 'none'; $('fallback').style.display = 'block'; return; }
+  const compile = (type, src) => {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  };
+  let prog;
+  try{
+    prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, $('vs').textContent));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, $('fs').textContent));
+    gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  }catch(err){ console.warn('Shader failed:', err); canvas.style.display = 'none'; $('fallback').style.display = 'block'; return; }
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'a');
+  gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const U = n => gl.getUniformLocation(prog, n);
+  const uRes = U('uRes'), uTime = U('uTime'), uLevel = U('uLevel'), uRec = U('uRec'), uProc = U('uProc');
+
+  // Cap render resolution: sharp enough on a 1440x3120 panel, cheap enough for mobile GPUs.
+  let scale = Math.min(window.devicePixelRatio || 1, 2) * 0.75;
+  function resize(){
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.max(2, Math.round(r.width * scale));
+    canvas.height = Math.max(2, Math.round(r.height * scale));
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  new ResizeObserver(resize).observe(canvas); resize();
+
+  const t0 = performance.now(); let last = t0, frames = 0, slow = 0;
+  function frame(now){
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    S.level += (S.targetLevel - S.level) * Math.min(1, dt * 14);
+    S.rec   += (S.recT - S.rec)   * Math.min(1, dt * 4);
+    S.proc  += (S.procT - S.proc) * Math.min(1, dt * 4);    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.uniform1f(uTime, ((now - t0) / 1000) % 600);
+    gl.uniform1f(uLevel, S.level); gl.uniform1f(uRec, S.rec); gl.uniform1f(uProc, S.proc);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    // auto-degrade on weak GPUs
+    if(++frames > 30){ if(dt > .04) slow++; if(slow > 20 && scale > .4){ scale *= .75; resize(); slow = 0; } if(frames > 300){ frames = 0; slow = 0; } }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ============ Recorder ============ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const R = { on:false, mode:null, stream:null, mr:null, chunks:[], ctx:null, an:null, raf:0, rec:null, text:'', t0:0, tick:0, levels:[], real:false };
+const ANDROID = /Android/i.test(navigator.userAgent);   // Android Chrome can't share the mic between SpeechRecognition and getUserMedia
+
+// Microphone capture: the audio file (what the card plays back), the live level (drives the ring), and the waveform ticks.
+async function startCapture(){
+  R.stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true } });
+  R.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = R.ctx.createMediaStreamSource(R.stream);
+  R.an = R.ctx.createAnalyser(); R.an.fftSize = 512; src.connect(R.an);
+  const buf = new Uint8Array(R.an.fftSize); let lastSample = 0;
+  R.levels = []; R.real = true;
+  const loop = now => {
+    R.an.getByteTimeDomainData(buf);
+    let s = 0; for(const v of buf){ const x = (v - 128) / 128; s += x*x; }
+    S.targetLevel = Math.min(1, Math.sqrt(s / buf.length) * 5);
+    if(now - lastSample > 120){ R.levels.push(S.targetLevel); lastSample = now; }
+    R.raf = requestAnimationFrame(loop);
+  };
+  loop(0);
+  const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+  R.chunks = [];
+  // 24 kbps Opus is clear for a voice and keeps uploads small (~180 KB per minute)
+  R.mr = new MediaRecorder(R.stream, Object.assign({ audioBitsPerSecond:24000 }, mime ? { mimeType:mime } : {}));
+  R.mr.ondataavailable = e => e.data.size && R.chunks.push(e.data);
+  R.mr.start(1000);
+}
+function makeWave(levels, n = 48){   // squash the level history into n ticks, 4..100
+  if(!levels.length) return null;
+  const out = [];
+  for(let i = 0; i < n; i++){
+    const a = Math.floor(i * levels.length / n), b = Math.max(a + 1, Math.floor((i + 1) * levels.length / n));
+    let m = 0; for(let j = a; j < b; j++) m = Math.max(m, levels[j] || 0);
+    out.push(Math.round(4 + 96 * Math.min(1, m * 1.25)));
+  }
+  return out;
+}
+
+function setStatus(s){ $('status').textContent = s === 'Ready' ? '' : s; }   // idle shows nothing
+function setLive(t){ const l = $('live'); l.textContent = t; l.classList.toggle('has', !!t); l.scrollTop = l.scrollHeight; }
+
+async function startRecording(){
+  const mode = KEY.transcribe() ? 'whisper' : (SR ? 'speech' : null);
+  if(!mode){ toast('No speech engine — add an OpenAI key in settings'); return; }
+  R.mode = mode; R.text = ''; setLive('');
+  try{
+    R.levels = []; R.real = false; R.mr = null;
+    if(mode === 'whisper'){
+      await startCapture();
+    }else{
+      // Android Chrome can't share the mic with SpeechRecognition, so there the level is simulated and no audio is kept.
+      // Elsewhere we capture the audio alongside, best effort.
+      R.rec = new SR(); R.rec.continuous = true; R.rec.interimResults = true; R.rec.lang = navigator.language || 'en-US';
+      let finalText = '';
+      R.rec.onresult = e => {
+        let interim = '';
+        for(let i = e.resultIndex; i < e.results.length; i++){
+          const r = e.results[i];
+          if(r.isFinal) finalText += r[0].transcript + ' '; else interim += r[0].transcript;
+        }
+        R.text = finalText; setLive((finalText + interim).trim());
+        if(!R.real) S.targetLevel = .5 + Math.random() * .4;
+      };
+      R.rec.onerror = e => { if(e.error !== 'no-speech' && e.error !== 'aborted') toast('Speech error: ' + e.error); };
+      R.rec.onend = () => { if(R.on) try{ R.rec.start(); }catch{} };  // Chrome ends sessions on silence; keep going
+      R.rec.start();
+      if(!ANDROID) startCapture().catch(err => console.warn('audio capture unavailable', err));
+      R.iv = setInterval(() => { if(!R.real) S.targetLevel *= .82; }, 60);
+    }
+  }catch(err){
+    console.warn(err); toast(err.name === 'NotAllowedError' ? 'Microphone permission denied' : 'Could not start recording');
+    cleanup(); return;
+  }
+  R.on = true; R.t0 = Date.now(); S.recT = 1;
+  $('rec').classList.add('on'); setStatus('Listening');
+  R.tick = setInterval(() => {
+    const s = Math.floor((Date.now() - R.t0) / 1000);
+    $('timer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }, 250);
+}
+
+function cleanup(){
+  clearInterval(R.tick); cancelAnimationFrame(R.raf); clearInterval(R.iv);
+  if(R.stream) R.stream.getTracks().forEach(t => t.stop());
+  if(R.ctx) R.ctx.close().catch(()=>{});
+  R.stream = R.ctx = R.an = null; R.on = false;
+  S.targetLevel = 0; S.recT = 0;
+  $('rec').classList.remove('on'); $('timer').textContent = '';
+}
+
+async function stopRecording(){
+  const dur = Math.round((Date.now() - R.t0) / 1000);
+  R.on = false;  // before stop(), so SpeechRecognition.onend doesn't restart
+  $('rec').disabled = true; S.procT = 1; setStatus('Transcribing');
+  let text = '', words = null, blob = null;
+  const wave = makeWave(R.levels);
+  const grabBlob = () => (R.mr && R.mr.state !== 'inactive')
+    ? new Promise(res => { R.mr.onstop = () => res(new Blob(R.chunks, { type:R.mr.mimeType })); R.mr.stop(); }) : null;
+  try{
+    if(R.mode === 'whisper'){
+      blob = await grabBlob(); cleanup();
+      const r = await transcribe(blob); text = r.text; words = r.words;
+    }else{
+      const done = new Promise(res => { R.rec.onend = res; setTimeout(res, 1500); });
+      R.rec.stop(); await done;
+      blob = await grabBlob(); cleanup();
+      text = R.text.trim() || $('live').textContent.trim();
+    }
+  }catch(err){ console.error(err); toast('Transcription failed: ' + (err.message || err)); cleanup(); }
+  S.procT = 0; $('rec').disabled = false; setStatus('Ready');
+  if(text || blob){                                         // keep the audio even if transcription failed; it can be transcribed later
+    const entry = { id:Date.now(), ts:Date.now(), dur, text };
+    if(blob){ entry.audio = true; entry.audioExt = audioExt(blob.type); AudioStore.put(entry.id, blob); }
+    if(wave) entry.wave = wave;
+    if(words && words.length) entry.words = words;
+    const cap = capsuleUntil();
+    if(cap) entry.capsule = cap;
+    entries.unshift(entry);
+    store.set('entries', entries); renderEntries();
+    setLive(cap ? '' : text);
+    toast(cap ? 'Sealed until ' + new Date(cap).toLocaleDateString([], { year:'numeric', month:'short', day:'numeric' }) : 'Saved to journal');
+    resetCapsule();
+    if(!cap && text) analyzeEntry(entry.id);               // sealed entries stay unread until they open
+  }else if(!$('toast').classList.contains('on')){ toast('Nothing was heard'); setLive(''); }
+}
+
+async function transcribe(blob){
+  const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+  let r;
+  if(API){                                                          // the server rebuilds the Whisper request (model and format are fixed there)
+    r = await fetch(API + '/transcribe', { method:'POST', headers:{ 'content-type':blob.type || 'audio/webm' }, body:blob });
+  }else{
+    const fd = new FormData(); fd.append('file', blob, 'audio.' + ext); fd.append('model', MODELS.transcribe);
+    fd.append('response_format', 'verbose_json'); fd.append('timestamp_granularities[]', 'word');   // word times let the transcript follow playback
+    r = await fetch('https://api.openai.com/v1/audio/transcriptions', { method:'POST', headers:{ Authorization:'Bearer ' + KEY.transcribe() }, body:fd });
+  }
+  if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error?.message || r.status);
+  const j = await r.json();
+  return { text:(j.text || '').trim(), words:(j.words || []).map(w => ({ w:w.word, s:+w.start.toFixed(2), e:+w.end.toFixed(2) })) };
+}
+
+$('rec').addEventListener('click', () => R.on ? stopRecording() : startRecording());
+
+/* ============ Journal ============ */
+function fmtDate(ts){ return new Date(ts).toLocaleString([], { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
+const isOpen = e => !e.capsule || e.capsule <= Date.now();     // false while a time capsule is still sealed
+const fmtDay = ts => new Date(ts).toLocaleDateString([], { year:'numeric', month:'long', day:'numeric' });
+const TAG_KINDS = { people:'p', projects:'', work:'w', events:'', missions:'m' };
+let filterTag = null;
+
+/* ---- Cards: each one is tied to a recording and its transcript ----
+   Half-width by default, full-width for recordings of 10+ minutes. The ticks are the audio's own waveform and the yellow marker
+   is the playhead. Play it right on the card; tap anywhere else to open the transcript, which lights up word by word as it plays. */
+const WIDE_SECS = 600;
+const toneOf = e => {
+  if(e.capsule && !isOpen(e)) return 'plum';
+  const h = new Date(e.ts).getHours();                             // the colour is when you spoke
+  return h < 6 ? 'cobalt' : h < 12 ? 'sage' : h < 18 ? 'ember' : 'rose';
+};
+const fmtClock = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s % 60).padStart(2, '0'); };
+const entryById = id => entries.find(x => x.id === id);
+function waveOf(e){
+  if(e.wave && e.wave.length) return e.wave;
+  const seed = hashN(String(e.id)) * 6.28, out = [];               // no recording to read from: a stable pseudo-wave
+  for(let i = 0; i < 48; i++) out.push(Math.round(14 + 70 * Math.abs(Math.sin(i * .5 + seed) * Math.sin(i * .17 + seed * 1.7))));
+  return out;
+}
+function ticksEl(e, cls){
+  const w = el('div', 'ticks' + (cls ? ' ' + cls : ''));
+  for(const v of waveOf(e)){ const t = el('i'); t.style.height = (14 + v * .86) + '%'; w.append(t); }
+  w.append(el('u', 'mk'));                                         // the playhead
+  return w;
+}
+/* What kind of record is it? Each type gets its own small gauge on the card, in the spirit of the widget reference:
+   Mood (slider + marker), People (overlapping initials), Plan (tick gauge + marker), Work (segmented load bar), Voice (dots). */
+const TYPE_NAME = { mood:'Mood', people:'People', plan:'Plan', work:'Work', voice:'Voice', note:'Note' };
+const FUTURE = /\b(want to|need to|going to|plan to|should|will|tomorrow|next)\b/i;
+const tagsOf = e => e.tags || (e.text ? localEntry(e.text).tags : EMPTY_TAGS());
+function moodScore(text){   // -1 heavy .. +1 light, from the same word lists the insights use
+  let p = 0, n = 0;
+  for(const w of text.toLowerCase().match(/[a-zà-ÿ']{3,}/g) || []){ if(POS.includes(w)) p++; if(NEG.includes(w)) n++; }
+  return p + n ? (p - n) / (p + n) : 0;
+}
+function typeOf(e){
+  if(!e.text) return 'voice';                                       // recorded but not transcribed yet
+  if(e.analysis && e.analysis.mode === 'note') return 'note';       // under 10 s: kept as is, never analysed
+  const t = tagsOf(e);
+  if(t.missions.length) return 'plan';
+  if(t.people.length) return 'people';
+  if(t.work.length >= 2) return 'work';
+  return 'mood';
+}
+function uiFor(e, sealed){
+  const type = sealed ? 'voice' : typeOf(e), box = el('div', 'ui ui-' + type);
+  if(type === 'mood'){
+    box.append(el('span', 'trk')); const m = el('u', 'mk2'); m.style.left = ((moodScore(e.text) + 1) / 2 * 88 + 6) + '%'; box.append(m);
+  }else if(type === 'people'){
+    const ps = tagsOf(e).people;
+    ps.slice(0, 3).forEach(p => box.append(el('span', 'av', p.trim()[0].toUpperCase())));
+    if(ps.length > 3) box.append(el('span', 'av', '+' + (ps.length - 3)));
+  }else if(type === 'plan'){
+    const sents = e.text.split(/(?<=[.!?])\s+/).filter(Boolean);
+    const ahead = sents.filter(s => FUTURE.test(s)).length / Math.max(1, sents.length);   // how forward-looking the entry is
+    for(let i = 0; i < 18; i++) box.append(el('i', i % 3 === 0 ? 'tall' : ''));
+    const m = el('u', 'mk2'); m.style.left = (6 + ahead * 88) + '%'; box.append(m);
+  }else if(type === 'work'){
+    const hits = (e.text.toLowerCase().match(/\b(work|job|boss|deadline|meeting|client|office|project|email)\b/g) || []).length;
+    const on = Math.max(1, Math.min(8, hits * 2));
+    for(let i = 0; i < 8; i++) box.append(el('i', i < on ? 'f' : ''));
+  }else{ for(let i = 0; i < 5; i++) box.append(el('i')); }
+  return box;
+}
+function keywordsOf(e, n){   // tags first (people, projects, events, work), then the most repeated words
+  if(!e.text) return [];
+  const t = tagsOf(e), out = [], has = x => out.some(o => o.toLowerCase() === x.toLowerCase());
+  for(const k of ['people', 'projects', 'events', 'work', 'missions']) for(const x of t[k]) if(x.length <= 18 && !has(x)) out.push(x);
+  if(out.length < n){
+    const f = {}; for(const w of e.text.toLowerCase().match(/[a-zà-ÿ']{5,}/g) || []) if(!STOP.has(w)) f[w] = (f[w] || 0) + 1;
+    const WEAK = new Set(['feeling', 'something', 'nothing', 'honestly', 'really', 'special', 'happened', 'because', 'always', 'again', 'maybe', 'little']);
+    for(const [w] of Object.entries(f).sort((a, b) => b[1] - a[1])) if(out.length < n && !has(w) && !WEAK.has(w)) out.push(w);
+  }
+  return out.slice(0, n);
+}
+function cardEl(e){
+  const wide = (e.dur || 0) >= WIDE_SECS, sealed = !isOpen(e), d = new Date(e.ts);
+  const c = el('div', 'wcard ' + toneOf(e) + (wide ? ' wide' : '') + (sealed ? ' sealed' : '')); c.dataset.id = e.id;
+  const wl = el('div', 'wl');
+  wl.append(el('b', null, sealed ? 'Capsule' : TYPE_NAME[typeOf(e)]),
+            el('span', null, wide
+              ? d.toLocaleDateString([], { weekday:'short', day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
+              : d.toLocaleDateString([], { day:'numeric', month:'short' })));
+  c.append(wl, uiFor(e, sealed));
+  let wk = null;
+  if(!sealed){ const kw = keywordsOf(e, wide ? 4 : 2); if(kw.length) wk = el('div', 'wk', kw.join(' · ')); }
+  const v = el('div', 'wv');
+  if(sealed){ v.append(el('b', null, '⏳'), el('small', null, 'until ' + new Date(e.capsule).toLocaleDateString([], { day:'numeric', month:'short', year:'numeric' }))); }
+  else if(e.dur){ v.append(el('b', null, fmtClock(e.dur))); }
+  else{ v.append(el('b', null, String(e.text.split(/\s+/).filter(Boolean).length)), el('small', null, 'words')); }
+  const wb = el('div', 'wb'); wb.append(v); if(wk) wb.append(wk); c.append(wb);   // bottom row: duration, then keywords (playback lives in the reader)
+  c.onclick = () => { if(sealed) toast('Sealed until ' + fmtDay(e.capsule)); else openReader(e.id); };
+  return c;
+}
+function renderEntries(){
+  buildWeb(); buildTimeline();                                      // the web and the timeline are the home screen: keep them current
+  const cnt = $('cardsCount'); cnt.hidden = !entries.length; cnt.textContent = entries.length;
+  const box = $('entries'); box.replaceChildren();
+  if(filterTag){
+    const b = el('button','chip','✕ ' + filterTag); b.onclick = () => { filterTag = null; renderEntries(); }; box.append(b);
+  }
+  const list = entries.filter(e => !filterTag || (isOpen(e) && ((e.tags && Object.values(e.tags).some(v => v.includes(filterTag))) || (e.text || '').toLowerCase().includes(filterTag.toLowerCase()))));
+  if(!list.length){ box.append(el('div','empty', filterTag ? 'Nothing with that tag.' : 'Nothing here yet.\nRecord your first thought.')); return; }
+  const grid = el('div', 'egrid'); for(const e of list) grid.append(cardEl(e)); box.append(grid);
+  paintPlayer();
+}
+
+/* ---- Playback ---- */
+const Player = { id:null, a:null, url:null };
+function stopPlayer(){
+  if(Player.a) Player.a.pause();
+  if(Player.url) URL.revokeObjectURL(Player.url);
+  Player.id = Player.a = Player.url = null; paintPlayer();
+}
+const durOf = id => { const a = Player.a, e = entryById(id); return (a && Player.id === id && isFinite(a.duration) && a.duration > 0) ? a.duration : ((e && e.dur) || 0); };
+const progress = () => { if(!Player.a) return 0; const d = durOf(Player.id); return d ? Math.min(1, Player.a.currentTime / d) : 0; };
+function seekFrac(f){ if(Player.a){ try{ Player.a.currentTime = Math.max(0, Math.min(1, f)) * durOf(Player.id); }catch{} } }
+async function togglePlay(id, atFrac){
+  if(Player.id === id && Player.a){
+    if(atFrac != null){ seekFrac(atFrac); if(Player.a.paused) Player.a.play(); }
+    else if(Player.a.paused) Player.a.play(); else Player.a.pause();
+    return;
+  }
+  const blob = await AudioStore.get(id);
+  if(!blob){ toast(Backend.ready() ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
+  stopPlayer();
+  const a = new Audio(); a.src = URL.createObjectURL(blob); Player.id = id; Player.a = a; Player.url = a.src;
+  a.addEventListener('timeupdate', paintPlayer); a.addEventListener('play', paintPlayer); a.addEventListener('pause', paintPlayer);
+  a.addEventListener('ended', stopPlayer);
+  if(atFrac != null) a.addEventListener('loadedmetadata', () => seekFrac(atFrac), { once:true });
+  a.play().catch(err => { console.warn(err); toast('Could not play this recording'); });
+}
+function paintTicks(root, on, p){
+  const ticks = root.querySelectorAll('.ticks i'), n = ticks.length || 1;
+  ticks.forEach((t, i) => t.classList.toggle('on', on && i / n < p));
+  const mk = root.querySelector('.mk'); if(mk) mk.style.left = (on ? p * 100 : 0) + '%';
+}
+function paintPlayer(){
+  const live = Player.id != null, p = live ? progress() : 0, playing = !!(Player.a && !Player.a.paused);
+  document.querySelectorAll('.wcard').forEach(c => {
+    const on = live && +c.dataset.id === Player.id;
+    c.classList.toggle('cur', on); paintTicks(c, on, p);
+  });
+  paintReader(p, playing);
+}
+
+/* ---- Reader: the transcript, tied to the audio ---- */
+const readerEl = $('reader'); let readId = null, readWords = [], readIdx = -1;
+function wordsOf(e){   // real word times when Whisper gave them; otherwise spread the words across the duration by length
+  if(e.words && e.words.length) return e.words;
+  const toks = (e.text || '').split(/\s+/).filter(Boolean), total = toks.reduce((s, t) => s + t.length + 1, 0) || 1, dur = e.dur || 0;
+  let acc = 0; return toks.map(t => { const s = dur * acc / total; acc += t.length + 1; return { w:t, s, e:dur * acc / total }; });
+}
+function renderReader(){
+  const e = entryById(readId); if(!e) return;
+  const d = new Date(e.ts), nWords = (e.text || '').split(/\s+/).filter(Boolean).length;
+  $('readTitle').textContent = d.toLocaleDateString([], { weekday:'long', day:'numeric', month:'long' });
+  $('readSub').textContent = [d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), e.dur ? fmtClock(e.dur) + ' min' : '', nWords ? nWords + ' words' : '', e.audio ? '' : 'text only'].filter(Boolean).join(' · ');
+  $('readTicks').replaceChildren(ticksEl(e, 'big'));
+  const box = $('readText'); box.replaceChildren(); readWords = []; readIdx = -1;
+  box.classList.toggle('plain', !e.audio);
+  if(!e.text) box.append(el('p', 'dimp', e.audio ? 'This recording hasn\'t been transcribed yet.' : 'No text.'));
+  else wordsOf(e).forEach((w, i) => { const s = el('span', 'tw', String(w.w).trim()); s.dataset.i = i; s.dataset.s = w.s; box.append(s, ' '); readWords.push(s); });
+  const echo = $('readEcho'); echo.replaceChildren();               // how this entry connects to the past; links open those entries
+  const REL = { repeats:'comes back', follows_up:'continues', progress:'a step on', contradicts:'different now' };
+  const an = e.analysis;
+  if(an && an.mode === 'note'){ echo.append(el('p', 'dimp', 'A short note: kept exactly as you said it, nothing added.')); }
+  else if(an && an.mode === 'full' && !an.relevant){ echo.append(el('p', 'dimp', 'Nothing explicit to highlight in this one. Nothing was added.')); }
+  else if(e.echo && e.echo.checked){
+    echo.append(el('h3', 'hub-h', 'Echoes from your past'));
+    if(!(e.echo.links || []).length) echo.append(el('p', 'dimp', 'Nothing in your past connects to this yet.'));
+    for(const l of e.echo.links || []){                              // what you said then and now, word for word; no prose in between
+      const p = entryById(l.id); if(!p) continue;
+      const b = el('button', 'echolink');
+      const head = el('div', 'ehead'); head.append(el('b', null, new Date(p.ts).toLocaleDateString([], { day:'numeric', month:'short', year:'numeric' })), el('em', null, REL[l.relation] || l.relation));
+      b.append(head, el('div', 'eq', '«' + l.oldQuote + '»'), el('div', 'eq now', 'today: «' + l.newQuote + '»'));
+      b.onclick = () => openReader(l.id); echo.append(b);
+    }
+    if(e.echo.question){ echo.append(el('h3', 'hub-h', 'A question'), el('p', 'echo', e.echo.question)); }
+  }else if(e.text && KEY.text() && an && an.relevant && entries.length > 1){ echo.append(el('h3', 'hub-h', 'Echoes from your past'), el('p', 'dimp', 'Looking for what connects…')); }
+  const pts = $('readPts'); pts.replaceChildren();
+  if(e.points && e.points.length){ pts.append(el('h3', 'hub-h', 'Key points')); const ul = el('ul', 'pts'); e.points.forEach(p => ul.append(el('li', null, p))); pts.append(ul); }
+  if(e.tags){
+    const tg = el('div', 'rtags');
+    for(const [kind, names] of Object.entries(e.tags)) for(const n of names){
+      const b = el('button', 'chip ' + (TAG_KINDS[kind] || ''), n); b.title = kind;
+      b.onclick = () => { filterTag = n; renderEntries(); readerEl.classList.remove('on'); openCards(); };
+      tg.append(b);
+    }
+    pts.append(tg);
+  }
+  const act = $('readAction');
+  act.hidden = false;
+  if(e.audio && !e.text){ act.textContent = 'Transcribe this recording'; act.onclick = () => transcribeEntry(e.id); }
+  else if(e.text && !e.points){ act.textContent = 'Find key points'; act.onclick = async () => { act.textContent = 'Reading…'; await analyzeEntry(e.id); renderReader(); }; }
+  else act.hidden = true;
+  $('readPlay').disabled = !e.audio;
+  paintPlayer();
+}
+function paintReader(p, playing){
+  if(!readerEl.classList.contains('on')) return;
+  const on = Player.id != null && Player.id === readId, e = entryById(readId); if(!e) return;
+  $('readTicks').classList.toggle('cur', on); paintTicks($('readTicks'), on, p);
+  $('readPlay').textContent = on && playing ? '❚❚' : '▶';
+  const cur = on ? Player.a.currentTime : 0, dur = durOf(readId);
+  $('readTime').textContent = fmtClock(cur) + (dur ? ' / ' + fmtClock(dur) : '');
+  if(!e.audio || !readWords.length) return;
+  let idx = -1;                                                    // last word that has started
+  if(on){ const ws = wordsOf(e); for(let i = 0; i < ws.length && ws[i].s <= cur; i++) idx = i; }
+  if(idx === readIdx) return;
+  readIdx = idx;
+  readWords.forEach((s, i) => { s.classList.toggle('rd', i < idx); s.classList.toggle('now', i === idx); });
+  if(idx >= 0 && playing && readWords[idx]) readWords[idx].scrollIntoView({ block:'center', behavior:'smooth' });
+}
+function openReader(id){
+  readId = id; renderReader();
+  phoneEl.classList.add('sheeted'); readerEl.classList.add('on'); paintPlayer();
+}
+$('readPlay').onclick = () => togglePlay(readId);
+$('readTicks').addEventListener('click', ev => {
+  const e = entryById(readId); if(!e || !e.audio) return;
+  const r = ev.currentTarget.getBoundingClientRect(); togglePlay(readId, (ev.clientX - r.left) / r.width);
+});
+$('readText').addEventListener('click', ev => {
+  const s = ev.target.closest('.tw'), e = entryById(readId); if(!s || !e || !e.audio) return;
+  const dur = e.dur || durOf(readId); if(dur) togglePlay(readId, +s.dataset.s / dur);
+});
+$('readDelete').onclick = () => {
+  const e = entryById(readId); if(!e || !confirm('Delete this entry and its recording?')) return;
+  if(Player.id === readId) stopPlayer();
+  entries = entries.filter(x => x.id !== readId); AudioStore.del(readId);
+  store.set('entries', entries); renderEntries(); closeHub();
+};
+async function transcribeEntry(id){   // the "posterior transcription": run on a saved recording whenever you like
+  const e = entryById(id), blob = await AudioStore.get(id);
+  if(!e || !blob){ toast(Backend.ready() ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
+  if(!KEY.transcribe()){ toast('No transcription key set (see config.js)'); return; }
+  $('readAction').textContent = 'Transcribing…';
+  try{
+    const r = await transcribe(blob); e.text = r.text; if(r.words.length) e.words = r.words; e.u = Date.now();
+    store.set('entries', entries); renderEntries(); renderReader(); if(r.text) analyzeEntry(id);
+  }catch(err){ toast('Transcription failed: ' + (err.message || err)); renderReader(); }
+}
+
+/* ---- Key points + tags (people, projects, work, events, missions) ---- */
+const EMPTY_TAGS = () => ({ people:[], projects:[], work:[], events:[], missions:[] });
+/* The analysis itself (gate, extraction with verbatim quotes, verification, retrieval, links) is pipeline.js; see PIPELINE.md. */
+function localEntry(text){
+  const sents = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  const tags = EMPTY_TAGS(), add = (k, v) => { if(v && !tags[k].includes(v) && tags[k].length < 3) tags[k].push(v); };
+  const NOT_NAME = new Set(['I','Im','Ive','The','And','But','So','It','My','We','He','She','They','This','That','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']);
+  for(const s of sents){
+    const w = s.split(/\s+/);
+    w.slice(1).forEach(x => { const n = x.replace(/[^\p{L}]/gu, ''); if(/^\p{Lu}\p{Ll}{2,}$/u.test(n) && !NOT_NAME.has(n)) add('people', n); });
+    for(const m of s.toLowerCase().match(/\b(side project|project|startup|thesis|book|app)\b/g) || []) add('projects', m);
+    for(const m of s.toLowerCase().match(/\b(work|job|boss|deadline|meeting|client|office)\b/g) || []) add('work', m);
+    for(const m of s.toLowerCase().match(/\b(birthday|dinner|party|trip|wedding|concert|appointment|interview|run)\b/g) || []) add('events', m);
+    if(/\b(want to|need to|going to|plan to|should|will)\b/i.test(s)) add('missions', s.length > 60 ? s.slice(0, 57) + '…' : s.replace(/[.!?]$/, ''));
+  }
+  return { points:sents.slice(0, 3).map(s => s.length > 110 ? s.slice(0, 107) + '…' : s), tags };
+}
+/* ---- Embeddings: a vector per entry that captures what it MEANS (OpenAI text-embedding-3-small, 256 numbers) ----
+   Not an LLM: it returns numbers, not words, so it can't invent anything. Used to find past entries that say the same thing in other
+   words. They are derived data: kept on this device only (never synced), and recomputed whenever missing. */
+async function embedTexts(texts){
+  const r = await fetch(API ? API + '/embed' : 'https://api.openai.com/v1/embeddings', {
+    method:'POST', headers:API ? { 'content-type':'application/json' } : { 'content-type':'application/json', Authorization:'Bearer ' + KEY.text() },
+    body:JSON.stringify(API ? { inputs:texts } : { model:'text-embedding-3-small', input:texts, dimensions:256 }) });
+  if(!r.ok) throw new Error('embeddings ' + r.status);
+  const j = await r.json();
+  return API ? j.vectors : j.data.map(d => d.embedding);
+}
+async function ensureEmbeddings(list){
+  const vecs = store.get('embs', {});
+  const missing = list.filter(e => e.text && !vecs[e.id]).slice(0, 100);
+  if(missing.length){
+    const out = await embedTexts(missing.map(e => e.text));
+    missing.forEach((e, i) => { vecs[e.id] = out[i]; });
+    store.set('embs', vecs);
+  }
+  return vecs;
+}
+
+async function analyzeEntry(id){
+  const e = entryById(id); if(!e || !isOpen(e) || !e.text) return;
+  let patch = null;
+  if(KEY.text()){
+    try{
+      const past = entries.filter(x => x.id !== id && isOpen(x) && x.text);
+      let vecs = null; try{ vecs = await ensureEmbeddings([e, ...past]); }catch(err){ console.warn('no embeddings, using words only', err); }   // optional: the pipeline works without
+      patch = await Pipeline.run(e, past, llm, vecs);
+    }
+    catch(err){ console.warn('analysis failed', err); toast('AI failed, using local analysis'); }
+  }
+  if(!patch){                                                       // no key or the call failed: same shape, built only from their own sentences
+    const g = Pipeline.gate(e);
+    if(g.mode === 'note') patch = { analysis:{ v:2, mode:'note', reason:g.reason }, points:[], evidence:[], tags:EMPTY_TAGS() };
+    else{ const l = localEntry(e.text); patch = { analysis:{ v:2, mode:'full', relevant:true, local:true }, points:l.points, evidence:[], tags:l.tags }; }
+  }
+  const cur = entryById(id); if(!cur) return;                       // may have been deleted or replaced by a sync meanwhile
+  Object.assign(cur, patch); cur.u = Date.now();                    // u = version, so sync re-uploads the enriched entry
+  store.set('entries', entries); renderEntries();
+  if(readerEl.classList.contains('on') && readId === id) renderReader();
+}
+
+/* ---- Time capsules ---- */
+const capBtn = $('capBtn'), capDate = $('capDate');
+function capsuleUntil(){ return capDate.hidden || !capDate.value ? 0 : new Date(capDate.value + 'T09:00').getTime(); }
+function syncCapUI(){   // pill, date row, the "sealed until" note above the record button, and the badge on the hub button
+  const on = !capDate.hidden;
+  capBtn.classList.toggle('on', on);
+  $('capLabel').textContent = on ? 'Capsule armed. Tap to cancel' : 'Seal next entry as a time capsule';
+  $('capPlus').textContent = on ? '✕' : '+';
+  $('capRow').hidden = !on;
+  $('armed').hidden = !on;
+  $('armed').textContent = on && capDate.value ? '⏳ Next entry sealed until ' + fmtDay(new Date(capDate.value + 'T09:00').getTime()) : '';
+}
+function resetCapsule(){ capDate.hidden = true; capDate.value = ''; syncCapUI(); }
+capBtn.onclick = () => {
+  if(!capDate.hidden){ resetCapsule(); return; }
+  const min = new Date(Date.now() + 864e5), def = new Date(Date.now() + 365 * 864e5);
+  capDate.min = min.toISOString().slice(0, 10); capDate.value = def.toISOString().slice(0, 10);
+  capDate.hidden = false; syncCapUI();
+};
+capDate.onchange = () => {
+  if(!capDate.value || new Date(capDate.value + 'T09:00') <= Date.now()) capDate.value = capDate.min;
+  syncCapUI();
+};
+function announceCapsules(){
+  const ready = entries.filter(e => e.capsule && isOpen(e) && !e.opened);
+  if(!ready.length) return;
+  ready.forEach(e => e.opened = true); store.set('entries', entries);
+  toast(ready.length > 1 ? ready.length + ' time capsules are ready to open' : 'A time capsule from ' + fmtDay(ready[0].ts) + ' is ready');
+}
+
+/* ============ Insights ============ */
+const STOP = new Set('the a an and or but if so to of in on at for with from by is are was were be been am i me my we you it its this that these those not no yes do did does have has had just really very can could would should will about as up out than then there here what when who how why also like get got going go im ive dont didnt cant thats into over some more much too still even been one all they them their he she his her our us your because feel felt think thought today day'.split(' '));
+// Spanish function words too, so recurring-topic matching (timeline importance, keywords) works for Spanish entries
+'de la que el en y a los se del las un por con no una su para es al lo como más pero sus le ya o este sí porque esta entre cuando muy sin sobre también me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mí antes algunos qué unos yo otro otras otra él tanto esa estos mucho quienes nada muchos cual poco ella estar estas algunas algo nosotros mi mis tú te ti tu tus ellas nosotras vosotros vosotras os hoy ayer mañana estoy estaba está han ha he hace hacer cada vez siempre nunca tengo tiene tienen voy va vamos quiero quería ser sido era fue son soy eres sido digo dice dicho decir cosas cosa día días semana veces siento sentido creo parece ahora luego después aunque mientras todavía solo sólo tan más menos bien mal hemos mismo misma mismos muchísimo mucha vuelto haber habido estado estamos había hecho hacemos tener tenía podría puedo parecía alguna cuanto veo ver tarde noche mañana estás estoy semanas'.split(' ').forEach(w => STOP.add(w));
+const POS = 'happy good great love enjoy excited proud grateful calm better energy fun progress win relaxed hope glad peaceful motivated alive'.split(' ');
+const NEG = 'tired stressed anxious worried bad sad angry frustrated overwhelmed stuck lonely drained behind guilty afraid fear hate hard exhausted burnt procrastinate avoid'.split(' ');
+
+function localInsights(list){
+  const words = {}, hours = [0,0,0,0]; let pos = 0, neg = 0;
+  for(const e of list){
+    const h = new Date(e.ts).getHours(); hours[h < 6 ? 3 : h < 12 ? 0 : h < 18 ? 1 : 2]++;
+    for(const w of e.text.toLowerCase().match(/[a-zà-ÿ']{3,}/g) || []){
+      if(POS.includes(w)) pos++; if(NEG.includes(w)) neg++;
+      if(!STOP.has(w)) words[w] = (words[w] || 0) + 1;
+    }
+  }
+  const top = Object.entries(words).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const score = pos + neg ? (pos - neg) / (pos + neg) : 0;
+  const part = ['mornings','afternoons','evenings','late nights'][hours.indexOf(Math.max(...hours))];
+  return {
+    summary:`Across ${list.length} entr${list.length>1?'ies':'y'}, your mood leans ${score>.2?'positive':score<-.2?'heavy':'mixed'}. (Local analysis — add an OpenAI text key for deeper insight.)`,
+    mood:{ label: score>.2?'Uplifted':score<-.2?'Strained':'Balanced', score },
+    themes: top.map(([w,n]) => ({ name:w, detail:`Mentioned ${n} time${n>1?'s':''}` })),
+    patterns:[`You tend to reflect in the ${part}.`, top[0] ? `"${top[0][0]}" keeps coming back — it may be central right now.` : 'Record a few more entries to reveal patterns.'],
+    purpose:'Notice what you return to most. Your repeated words point at what matters to you.',
+    actions:['Record again tomorrow at the same time to build a streak.','Pick one recurring theme and decide on one small step for it.']
+  };
+}
+
+async function aiInsights(list){
+  const corpus = list.slice(0, 40).reverse().map(e => `[${new Date(e.ts).toISOString()}] ${e.text}`).join('\n\n');
+  const system = 'You are Alive, a warm, perceptive reflection coach. Analyse the user\'s voice-journal entries and find real patterns in their life: recurring themes, emotional trends, energy drains and sources, avoided things, implied values. Be specific, cite their own words, never generic, never diagnose. Reply with ONLY JSON: {"summary":string,"mood":{"label":string,"score":number -1..1},"themes":[{"name":string,"detail":string}],"patterns":[string],"purpose":string,"actions":[string]} with 3-5 themes, 2-4 patterns, 2-3 actions.';
+  const txt = await llm(system, corpus, { json:true, max:1500 });
+  return JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+}
+
+function renderInsights(i){
+  const out = $('insightOut'); out.replaceChildren(); if(!i) return;
+  const add = (title, node) => { const c = el('div','card'); c.append(el('h3', null, title), node); out.append(c); return c; };
+  add('Overview', el('p','big', i.summary));
+  const mood = el('p','big', `${i.mood.label}`); mood.append(el('span', null, `  (${(i.mood.score*100|0)>0?'+':''}${Math.round(i.mood.score*100)})`)); mood.lastChild.style.color = 'var(--dim)';
+  add('Mood', mood);
+  const th = el('div'); i.themes.forEach(t => { th.append(el('span','chip',t.name)); });
+  const tc = add('Themes', th); const ul0 = el('ul'); i.themes.forEach(t => ul0.append(el('li', null, t.name + ' — ' + t.detail))); tc.append(el('div')); tc.lastChild.style.height = '2cqw'; tc.append(ul0);
+  const ul = el('ul'); i.patterns.forEach(p => ul.append(el('li', null, p))); add('Patterns', ul);
+  add('Toward purpose', el('p','big', i.purpose));
+  const ua = el('ul'); i.actions.forEach(a => ua.append(el('li', null, a))); add('Next steps', ua);
+}
+
+$('analyze').addEventListener('click', async () => {
+  const open = entries.filter(isOpen);                      // sealed capsules are never read early
+  if(!open.length){ toast('Record something first'); return; }
+  const b = $('analyze'); b.disabled = true; b.textContent = 'Thinking…'; S.procT = 1;
+  try{
+    const res = KEY.text() ? await aiInsights(open) : localInsights(open);
+    store.set('insights', res); renderInsights(res);
+  }catch(err){
+    console.error(err); toast('AI failed, using local analysis'); const res = localInsights(open); renderInsights(res);
+  }
+  b.disabled = false; b.textContent = 'Find my patterns'; S.procT = 0;
+});
+
+/* ============ Navigation + settings ============ */
+/* ---- Hub: the web of your keywords and labels ----
+   Outer ring: your last 60 days as tick marks, today at the top, going clockwise back in time; days you spoke are tall and lit.
+   Inside: tags (people, projects, work, events, missions) plus words that recur across entries. Size and heat = how often.
+   Hot ones sit near the middle; lines join things that show up in the same entry. */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const hashN = s => { let h = 2166136261; for(const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return ((h >>> 0) % 1000) / 1000; };
+const heat = h => `hsl(${42 - 18 * h} ${28 + 72 * h}% ${40 + 28 * h}%)`;          // dull tan -> ember -> bright
+const KIND_ORDER = ['people', 'projects', 'work', 'events', 'missions', 'word'];
+
+function buildWeb(){
+  const open = entries.filter(isOpen), nodes = new Map(), edges = new Map();
+  const wordFreq = {};
+  const wordSets = open.map(e => {
+    const s = new Set((e.text.toLowerCase().match(/[a-zà-ÿ']{4,}/g) || []).filter(w => !STOP.has(w)));
+    s.forEach(w => wordFreq[w] = (wordFreq[w] || 0) + 1); return s;
+  });
+  const add = (name, kind) => {
+    const k = kind + ':' + name.toLowerCase(); let n = nodes.get(k);
+    if(!n){ n = { key:k, name, kind, count:0 }; nodes.set(k, n); }
+    n.count++; return k;
+  };
+  open.forEach((e, i) => {
+    const keys = new Set(), tags = e.tags || localEntry(e.text).tags;
+    for(const [kind, names] of Object.entries(tags)) for(const nm of names) if(nm.length <= 24) keys.add(add(nm, kind));   // skip sentence-length labels
+    wordSets[i].forEach(w => { if(wordFreq[w] >= 2) keys.add(add(w, 'word')); });
+    const arr = [...keys];
+    for(let a = 0; a < arr.length; a++) for(let b = a + 1; b < arr.length; b++){ const id = arr[a] + '|' + arr[b]; edges.set(id, (edges.get(id) || 0) + 1); }
+  });
+  // keep the 20 strongest; the kind order keeps same-kind labels together around the ring
+  const top = [...nodes.values()].sort((a, b) => b.count - a.count || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind)).slice(0, 20);
+  const max = top.length ? top[0].count : 1;
+  const ring = top.slice().sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || b.count - a.count);
+  const pos = new Map();
+  ring.forEach((n, i) => {
+    const ang = -Math.PI / 2 + (i + .5) / ring.length * Math.PI * 2 + (hashN(n.key) - .5) * .12;
+    const rank = top.indexOf(n) / Math.max(1, top.length - 1);                             // 0 = hottest
+    const rad = 28 + rank * 78 + (i % 2) * 8 + hashN(n.key + 'r') * 6;                     // hot near the middle, spread by rank
+    pos.set(n.key, { x:Math.cos(ang) * rad, y:Math.sin(ang) * rad, ang, rad });
+  });
+  // ticks: last 60 days
+  const day = 864e5, today = new Date(); today.setHours(0, 0, 0, 0);
+  const perDay = new Array(60).fill(0);
+  for(const e of open){ const d = Math.floor((today.getTime() + day - e.ts) / day); if(d >= 0 && d < 60) perDay[d]++; }
+  let svg = `<svg viewBox="-170 -170 340 340" role="img" aria-label="Web of keywords and labels"><defs><filter id="gb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>`;
+  for(let i = 0; i < 60; i++){
+    const a = -Math.PI / 2 + i / 60 * Math.PI * 2, n = perDay[i], r0 = 138, r1 = r0 + 5 + Math.min(n, 3) * 4;
+    svg += `<line x1="${(Math.cos(a) * r0).toFixed(1)}" y1="${(Math.sin(a) * r0).toFixed(1)}" x2="${(Math.cos(a) * r1).toFixed(1)}" y2="${(Math.sin(a) * r1).toFixed(1)}" stroke="${n ? '#ffd27a' : 'rgba(243,236,220,.55)'}" stroke-width="${n ? 2.2 : 1.1}" stroke-linecap="round" opacity="${n ? 1 : .5}"/>`;
+  }
+  svg += `<circle r="124" fill="none" stroke="rgba(243,236,220,.14)" stroke-width="1"/>`;
+  const maxE = Math.max(1, ...edges.values());
+  [...edges.entries()].sort((a, b) => b[1] - a[1]).slice(0, 34).forEach(([id, w]) => {
+    const [ka, kb] = id.split('|'), A = pos.get(ka), B = pos.get(kb); if(!A || !B) return;
+    svg += `<path d="M${A.x.toFixed(1)} ${A.y.toFixed(1)} Q${((A.x + B.x) * .3).toFixed(1)} ${((A.y + B.y) * .3).toFixed(1)} ${B.x.toFixed(1)} ${B.y.toFixed(1)}" fill="none" stroke="#e8c48a" stroke-opacity="${(.1 + .4 * w / maxE).toFixed(2)}" stroke-width="${(.6 + 1.2 * w / maxE).toFixed(2)}"/>`;
+  });
+  for(const n of ring){                                      // heat glow underneath, then crisp nodes and labels
+    const p = pos.get(n.key), h = n.count / max, r = 3.5 + 8 * Math.sqrt(h);
+    svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r * 2.6).toFixed(1)}" fill="${heat(h)}" opacity="${(.12 + .5 * h).toFixed(2)}" filter="url(#gb)"/>`;
+  }
+  for(const n of ring){
+    const p = pos.get(n.key), h = n.count / max, r = 3.5 + 8 * Math.sqrt(h), right = Math.cos(p.ang) >= 0;
+    const lx = p.x + Math.cos(p.ang) * (r + 4), ly = p.y + Math.sin(p.ang) * (r + 4);
+    svg += `<g class="nd" data-k="${esc(n.name)}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="${heat(h)}" ${n.kind === 'word' ? '' : 'stroke="#fff4dc" stroke-width="1"'}/>` +
+           `<text x="${lx.toFixed(1)}" y="${(ly + 3).toFixed(1)}" text-anchor="${right ? 'start' : 'end'}" opacity="${(.55 + .45 * h).toFixed(2)}">${esc(n.name.length > 16 ? n.name.slice(0, 15) + '…' : n.name)}</text></g>`;
+  }
+  svg += `<circle r="9" fill="#f6efe0"/><circle r="9" fill="none" stroke="rgba(255,244,220,.5)" stroke-width="5" opacity=".4"/></svg>`;
+  $('web').innerHTML = open.length
+    ? svg + '<div class="legend scale"><span>less</span><i></i><span>more</span></div>'
+    : svg + '<div class="legend">Speak for a few days and your web will appear.</div>';
+}
+$('web').addEventListener('click', e => {
+  const g = e.target.closest('.nd'); if(!g) return;
+  filterTag = g.dataset.k; renderEntries(); openCards();                  // open the memories, filtered by that term
+});
+
+const phoneEl = $('phone');
+function closeHub(){                                            // closes the top sheet: reader first, then the memories
+  if(readerEl.classList.contains('on')) readerEl.classList.remove('on'); else cardsEl.classList.remove('on');
+  if(!readerEl.classList.contains('on') && !cardsEl.classList.contains('on')) phoneEl.classList.remove('sheeted');
+}
+$('hubScrim').onclick = closeHub;
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeHub(); });
+function dragToClose(g, sheet){ // grab handle: tap to close, or drag down
+  let y0 = null;
+  g.addEventListener('pointerdown', e => { y0 = e.clientY; g.setPointerCapture(e.pointerId); sheet.style.transition = 'none'; });
+  g.addEventListener('pointermove', e => { if(y0 != null) sheet.style.transform = `translateY(${Math.max(0, e.clientY - y0)}px)`; });
+  const end = e => {
+    if(y0 == null) return;
+    const dy = e.clientY - y0; y0 = null; sheet.style.transition = ''; sheet.style.transform = '';
+    if(dy > 90 || Math.abs(dy) < 6) closeHub();
+  };
+  g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+}
+dragToClose($('readGrab'), readerEl);
+
+/* ---- Sheets, task bar and view switch ----
+   Task bar: Memories (opens the cards sheet) | Record | Web/Timeline switch. The card sheet and the reader are stacked sheets:
+   closing the reader goes back to the cards, closing the cards goes back to home. */
+const heroEl = $('hero'), cardsEl = $('cardsSheet');
+function openCards(){ phoneEl.classList.add('sheeted'); cardsEl.classList.add('on'); requestAnimationFrame(placeAll); }
+$('cardsBtn').onclick = openCards;
+dragToClose($('cardsGrab'), cardsEl);
+
+const ICON_WEB = '<circle cx="12" cy="12" r="2.4"/><circle cx="5.5" cy="6.5" r="1.8"/><circle cx="18.5" cy="7" r="1.8"/><circle cx="17" cy="18" r="1.8"/><circle cx="6.5" cy="17" r="1.8"/><path d="M10.2 10.6 6.8 7.9M13.8 10.7l3-2.4M13.4 13.6l2.5 2.9M10.5 13.5 7.8 15.7"/>';
+const ICON_TIME = '<path d="M12 3v18"/><circle cx="12" cy="7" r="1.8"/><circle cx="12" cy="17" r="1.8"/><path d="M13.8 7H20M10.2 17H4"/>';
+function applyView(v){                                          // the button shows where it will take you
+  phoneEl.dataset.view = v;
+  $('viewIcon').innerHTML = v === 'time' ? ICON_WEB : ICON_TIME;
+  $('viewLabel').textContent = v === 'time' ? 'Web' : 'Timeline';
+}
+$('viewBtn').onclick = () => { const v = phoneEl.dataset.view === 'time' ? 'net' : 'time'; applyView(v); store.set('view', v); };
+
+// With the gear hidden, press and hold the title to open settings.
+{
+  let hold = 0, x0 = 0, y0 = 0;
+  const cancel = () => clearTimeout(hold);
+  heroEl.addEventListener('pointerdown', e => {
+    x0 = e.clientX; y0 = e.clientY; cancel();
+    hold = setTimeout(() => { if(navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(12); $('openSettings').click(); }, 700);
+  });
+  heroEl.addEventListener('pointermove', e => { if(Math.hypot(e.clientX - x0, e.clientY - y0) > 12) cancel(); });   // small finger jitter is fine
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => heroEl.addEventListener(ev, cancel));
+}
+
+/* ---- Timeline: the web, in a line ----
+   A spine down the middle, newest on top. Each memory sits on the spine as a dot, and its key points hang off it as pills,
+   alternating left and right. Colour = type of memory (same as the cards). Size = importance, in three tiers: a key point is
+   more important when what it talks about keeps coming back in other memories, when the memory is long, and when it is the
+   first thing that was said. The top fifth are large, the next 35% medium, the rest small. Tap a pill to open that memory. */
+const TYPE_TONE = { mood:'sage', people:'rose', plan:'cobalt', work:'ember', voice:'plum', note:'plum' };
+const TL_TYPES = ['mood', 'people', 'plan', 'work'];
+const tlOff = new Set();                                         // types switched off in the legend
+// An analysed entry has exactly the points it was given (possibly none). Only older entries, never analysed, fall back to their first sentences.
+const keypointsOf = e => e.analysis ? (e.points || []) : (e.points && e.points.length) ? e.points : (e.text ? localEntry(e.text).points : []);
+const sigWords = s => (s.toLowerCase().match(/[a-zà-ÿ]{5,}/g) || []).filter(w => !STOP.has(w));
+function buildTimeline(){
+  const open = entries.filter(e => isOpen(e) && e.text).sort((a, b) => b.ts - a.ts);
+  const toks = new Map(open.map(e => [e.id, new Set(sigWords(keypointsOf(e).join(' ') + ' ' + e.text))]));
+  const items = [];
+  for(const e of open){
+    keypointsOf(e).forEach((kp, i) => {
+      const mine = new Set(sigWords(kp)); let recurs = 0;
+      for(const o of open){ if(o.id === e.id) continue; const t = toks.get(o.id); for(const w of mine) if(t.has(w)){ recurs++; break; } }
+      const d = e.dur || 0;
+      items.push({ e, kp, score:recurs + (d >= 600 ? 2 : d >= 120 ? 1 : 0) + (i === 0 ? .5 : 0) });
+    });
+  }
+  items.slice().sort((a, b) => b.score - a.score).forEach((it, r, all) => { it.tier = r < all.length * .2 ? 1 : r < all.length * .55 ? 2 : 3; });
+
+  const leg = $('tlLegend'); leg.replaceChildren();
+  for(const t of TL_TYPES){
+    const b = el('button', TYPE_TONE[t] + (tlOff.has(t) ? ' off' : '')); b.append(el('i'), document.createTextNode(TYPE_NAME[t]));
+    b.onclick = () => { tlOff.has(t) ? tlOff.delete(t) : tlOff.add(t); buildTimeline(); }; leg.append(b);
+  }
+  const sz = el('span', 'sizes'); sz.append(document.createTextNode('size = importance'));
+  [1.2, 1.9, 2.8].forEach(px => { const b = el('b'); b.style.width = b.style.height = px + 'cqw'; sz.append(b); }); leg.append(sz);
+
+  const box = $('tlList'); box.replaceChildren();
+  let month = '', side = 0;
+  for(const e of open){
+    const type = typeOf(e); if(tlOff.has(type)) continue;
+    const mine = items.filter(it => it.e === e); if(!mine.length) continue;
+    const d = new Date(e.ts), m = d.toLocaleDateString([], { month:'long', year:'numeric' });
+    if(m !== month){ month = m; const h = el('div', 'tlmonth'); h.append(el('span', null, m)); box.append(h); }
+    const tone = TYPE_TONE[type], left = side++ % 2 === 0;
+    const row = el('div', 'tlrow'), pills = el('div', 'tlside ' + (left ? 'l' : 'r')), date = el('div', 'tlside ' + (left ? 'r' : 'l'));
+    for(const it of mine){
+      const p = el('button', 'kp t' + it.tier + ' ' + tone, it.kp); p.title = TYPE_NAME[type];
+      p.onclick = () => openReader(e.id); pills.append(p);
+    }
+    date.append(el('div', 'tldate', d.toLocaleDateString([], { day:'numeric', month:'short' })));
+    const mid = el('div', 'tlmid'); mid.append(el('i', 'tldot ' + tone));
+    row.append(...(left ? [pills, mid, date] : [date, mid, pills])); box.append(row);
+  }
+  if(!box.children.length) box.append(el('div', 'tlempty', open.length ? 'Nothing in these colours.' : 'Your timeline will appear as you speak.'));
+}
+
+$('openSettings').onclick = () => {
+  $('kOpenAI').value = settings.openai; $('kOpenAIText').value = settings.openaiText;
+  const shared = KEY.shared();                                   // shared project keys make the key fields pointless
+  [$('kOpenAI'), $('kOpenAIText')].forEach(i => { i.hidden = shared; if(i.previousElementSibling) i.previousElementSibling.hidden = shared; });
+  $('keysShared').hidden = !shared;
+  $('kGcal').value = settings.gcal; $('nudges').checked = settings.nudges;
+  $('kRepo').value = settings.ghRepo; $('kGhToken').value = settings.ghToken; $('kPass').value = settings.ghPass;
+  $('kRepo').placeholder = CFG.githubRepo || 'you/alive-journal';   // empty field = the project repo from config.js
+  $('storeState').textContent = store.mode === 'memory only'
+    ? 'This browser is blocking storage, so settings will be forgotten on reload. Open Alive from http://localhost (or your phone\'s browser) instead of a file or preview pane.'
+    : 'Settings are saved on this device (' + store.mode + ').';
+  $('sheet').classList.add('on');
+};
+$('closeSettings').onclick = () => $('sheet').classList.remove('on');
+function readFields(){   // fields -> settings, so nothing depends on pressing Save first
+  settings = { openai:$('kOpenAI').value.trim(), openaiText:$('kOpenAIText').value.trim(),
+               gcal:$('kGcal').value.trim(), nudges:$('nudges').checked,
+               ghRepo:$('kRepo').value.trim().replace(/^(https?:\/\/)?(www\.)?github\.com\//, '').replace(/[\s\/]+$/, '').replace(/\.git$/, ''),
+               ghToken:$('kGhToken').value.replace(/[^\x21-\x7E]/g, ''), ghPass:$('kPass').value };   // token: strips spaces, newlines, zero-width chars
+  store.set('settings', settings);
+}
+$('saveSettings').onclick = async () => {
+  readFields(); scheduleSync();
+  if(settings.nudges && !(await ensureNotifyPermission())){ settings.nudges = false; store.set('settings', settings); toast('Notifications are blocked'); return; }
+  $('sheet').classList.remove('on');
+  toast(store.mode === 'memory only' ? 'Saved for this session only: storage is blocked here' : 'Saved');
+};
+$('previewNudge').onclick = async () => {
+  if(!(await ensureNotifyPermission())){ toast('Allow notifications first'); return; }
+  await sendNudge(true); toast('Reminder sent');
+};
+
+/* ============ Quiet-moment reminders ============
+   Philosophy: Alive never nags. It speaks rarely, only when the day looks calm, and in your own voice.
+   Browser limits: a web page cannot read the Android notification panel, so that signal comes from an
+   optional native bridge (window.AliveNative.notificationCount(), e.g. a Capacitor plugin wrapping
+   NotificationListenerService). Calendar comes from Google Calendar freeBusy. Unknown signals are skipped. */
+const NUDGES = [
+  'I have a quiet moment. What am I carrying that I haven\'t said out loud yet?',
+  'Nothing is asking for me right now. Maybe this is when I ask something of myself.',
+  'I keep moving. Am I going somewhere I actually chose?',
+  'When did I last feel properly alive? What was I doing?',
+  'There is room in me today. What wants to be said?',
+  'I\'m still breathing, still here. What am I hoping for?',
+  'What would I tell a friend who was living my week?',
+  'The noise has settled. What is underneath it?'
+];
+const Signals = {
+  async notificationCount(){
+    try{ const n = window.AliveNative && window.AliveNative.notificationCount(); return typeof n === 'number' ? n : null; }catch{ return null; }
+  },
+  async calendarBusy(){  // busy at any point in the next hour? null = unknown
+    if(!settings.gcal) return null;
+    try{
+      const now = new Date(), end = new Date(now.getTime() + 60*6e4);
+      const r = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
+        method:'POST', headers:{ Authorization:'Bearer ' + settings.gcal, 'content-type':'application/json' },
+        body:JSON.stringify({ timeMin:now.toISOString(), timeMax:end.toISOString(), items:[{ id:'primary' }] }) });
+      if(!r.ok) return null;
+      return (await r.json()).calendars.primary.busy.length > 0;
+    }catch{ return null; }
+  }
+};
+
+async function ensureNotifyPermission(){
+  if(!('Notification' in window)) return false;
+  if(Notification.permission === 'default') await Notification.requestPermission();
+  return Notification.permission === 'granted';
+}
+
+async function isQuietMoment(){
+  if(!settings.nudges || !('Notification' in window) || Notification.permission !== 'granted') return false;
+  const h = new Date().getHours(); if(h < 9 || h >= 22) return false;                       // never at night
+  if(Date.now() - store.get('lastNudge', 0) < 40 * 36e5) return false;                      // at most every ~40h
+  if(entries[0] && Date.now() - entries[0].ts < 20 * 36e5) return false;                    // already spoke recently
+  const [n, busy] = await Promise.all([Signals.notificationCount(), Signals.calendarBusy()]);
+  if(busy === true) return false;
+  if(n !== null && n > 2) return false;                                                     // a busy panel means a busy head
+  return true;
+}
+
+async function composeNudge(){
+  if(KEY.text() && entries.length){
+    try{
+      const recent = entries.slice(0, 5).map(e => e.text).join('\n---\n');
+      const t = (await llm('Write ONE sentence in the first person ("I"), at most 22 words, quiet and elegant, that the reader will recognise as a thought in their own voice, inviting them to speak to themselves. Draw on their recent journal entries if relevant. No emojis, no exclamation marks, no guilt, no mention of apps, streaks or recording. Output only the sentence.', recent, { max:80 })).trim().replace(/^["“]|["”]$/g, '');
+      if(t) return t;
+    }catch{}
+  }
+  return NUDGES[Math.floor(Math.random() * NUDGES.length)];
+}
+
+async function sendNudge(force){
+  if(!force && !(await isQuietMoment())) return;
+  const body = await composeNudge();
+  const opts = { body, tag:'alive-nudge', silent:true };
+  try{
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if(reg) await reg.showNotification('Alive', opts); else new Notification('Alive', opts);
+    if(!force) store.set('lastNudge', Date.now());
+  }catch(err){ console.warn('nudge failed', err); }
+}
+
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+// Only nudge while the app is in the background; checked every 5 min and when the page is hidden.
+setInterval(() => { if(document.hidden) sendNudge(false); }, 5 * 6e4);
+document.addEventListener('visibilitychange', () => { if(document.hidden) setTimeout(() => document.hidden && sendNudge(false), 60e3); });
+$('wipe').onclick = () => { if(confirm('Delete all entries, recordings and insights?')){ stopPlayer(); entries.forEach(e => AudioStore.del(e.id)); entries = []; store.set('entries', []); store.set('insights', null); renderEntries(); renderInsights(null); $('sheet').classList.remove('on'); } };
+$('sample').onclick = () => {
+  const d = 864e5, now = Date.now();
+  const s = [
+    'Woke up tired again. Stayed up too late scrolling. I keep saying I will start the side project but work drains me and I avoid it.',
+    'Went for a run before work and felt great, so much energy all morning. I want more days like this. Skipped it twice this week though.',
+    'Stressed about the deadline. Felt anxious in the meeting, and I think I am overcommitting because I do not like saying no.',
+    'Spent the evening with friends, really happy and calm. I realise I feel most alive when I am with people or making something.',
+    'Stuck again on the side project. I procrastinate when the next step is unclear. Maybe I need to break it into tiny pieces.'
+  ];
+  entries = s.map((text, i) => ({ id:now + i, ts:(() => { const t = new Date(now - (s.length - i) * d); t.setHours([9, 14, 20, 3, 17][i], 20, 0, 0); return t.getTime(); })(), dur:[41, 842, 54, 66, 78][i], text })).reverse().concat(entries);
+  store.set('entries', entries); renderEntries(); $('sheet').classList.remove('on'); toast('Sample entries added');
+};
+
+/* ============ GitHub sync ============
+   Diff-based, no dirty flags. `remote` = ids known to exist in the repo after the last sync.
+   local∧remote: nothing · local only: new (push) or deleted elsewhere (drop) · remote only: new (pull) or deleted here (delete). */
+const b64 = {
+  enc: s => btoa(String.fromCharCode(...new TextEncoder().encode(s))),
+  dec: s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0))),
+  encBytes: u => btoa(String.fromCharCode(...u)),
+  decBytes: s => Uint8Array.from(atob(s), c => c.charCodeAt(0))
+};
+async function aesKey(pass, salt){
+  if(!(window.crypto && crypto.subtle)) throw new Error('Encryption needs HTTPS or localhost');
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:100000, hash:'SHA-256' }, base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+}
+async function seal(obj){
+  const plain = JSON.stringify(obj);
+  if(!settings.ghPass || SHARED_DB) return plain;           // the shared database is open to every user, so entries there are plain
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, await aesKey(settings.ghPass, salt), new TextEncoder().encode(plain)));
+  return JSON.stringify({ v:1, salt:b64.encBytes(salt), iv:b64.encBytes(iv), ct:b64.encBytes(ct) });
+}
+async function unseal(text){
+  const o = JSON.parse(text);
+  if(o.v !== 1 || !o.ct) return o;                       // plaintext entry
+  if(!settings.ghPass) throw new Error('Entries are encrypted: enter your passphrase');
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64.decBytes(o.iv) }, await aesKey(settings.ghPass, b64.decBytes(o.salt)), b64.decBytes(o.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+/* GitHub as the database (config.js -> githubRepo). The repo is public, so ANY device can read every entry and recording
+   with no login (entries/<id>.json, audio/<id>.webm). Writing needs a GitHub token, entered once in Settings on the device that
+   records; it is stored only in that browser and never in the repo (a token in a public repo gets revoked by GitHub). */
+const repoName = () => settings.ghRepo || CFG.githubRepo || '';
+const RAW = p => `https://raw.githubusercontent.com/${repoName()}/main/${p}`;   // public files: no token, no API rate limit
+const audioExt = t => /mp4|m4a|aac/.test(t || '') ? 'mp4' : 'webm';
+const GH = {
+  label: () => repoName(),
+  ready: () => /^[\w.-]+\/[\w.-]+$/.test(repoName()),
+  canWrite: () => !!settings.ghToken,
+  url: p => `https://api.github.com/repos/${repoName()}/contents/${p}`,
+  hdr(accept = 'application/vnd.github+json'){
+    const h = { Accept:accept, 'X-GitHub-Api-Version':'2022-11-28' };
+    if(settings.ghToken) h.Authorization = 'Bearer ' + settings.ghToken;
+    return h;
+  },
+  async check(r){
+    if(!r.ok){
+      const j = await r.json().catch(() => ({})), t = settings.ghToken || '';
+      const hint = `token ${t.slice(0, t.startsWith('github_pat_') ? 11 : 4)}…, ${t.length} chars`;
+      throw new Error(r.status === 401 ? `GitHub says "${j.message || 'Unauthorized'}" (${hint}; fine-grained tokens are ~93 chars)`
+        : r.status === 404 ? 'Repo not found, or the token has no access to it (check owner/name and repo selection)'
+        : r.status === 403 ? `Forbidden: ${j.message || 'token lacks Contents read/write'}`
+        : (j.message || r.status));
+    }
+    return r;
+  },
+  async list(){
+    const r = await fetch(this.url('entries'), { headers:this.hdr(), cache:'no-store' });
+    if(r.status === 404){                                  // folder missing: either empty repo or wrong repo; verify the repo
+      await this.check(await fetch(`https://api.github.com/repos/${repoName()}`, { headers:this.hdr() }));
+      return {};
+    }
+    const arr = await (await this.check(r)).json();
+    return Object.fromEntries(arr.filter(f => f.name.endsWith('.json')).map(f => [f.name.slice(0, -5), f.sha]));
+  },
+  async read(id){
+    if(this.canWrite()) return (await this.check(await fetch(this.url(`entries/${id}.json`), { headers:this.hdr('application/vnd.github.raw+json'), cache:'no-store' }))).text();
+    return (await this.check(await fetch(RAW(`entries/${id}.json`), { cache:'no-store' }))).text();
+  },
+  async write(id, text, sha){
+    const body = { message:'entry ' + id, content:b64.enc(text) }; if(sha) body.sha = sha;
+    const r = await this.check(await fetch(this.url(`entries/${id}.json`), { method:'PUT', headers:this.hdr(), body:JSON.stringify(body) }));
+    return (await r.json()).content.sha;
+  },
+  async remove(id, sha){
+    await this.check(await fetch(this.url(`entries/${id}.json`), { method:'DELETE', headers:this.hdr(), body:JSON.stringify({ message:'delete ' + id, sha }) }));
+    await this.removeAudio(id);
+  },
+  async shaOf(path){ const r = await fetch(this.url(path), { headers:this.hdr(), cache:'no-store' }); return r.ok ? (await r.json()).sha : null; },
+  async putAudio(id, blob){
+    const path = `audio/${id}.${audioExt(blob.type)}`, body = { message:'audio ' + id, content:await blobToB64(blob) };
+    const sha = await this.shaOf(path); if(sha) body.sha = sha;                    // re-uploading replaces it
+    await this.check(await fetch(this.url(path), { method:'PUT', headers:this.hdr(), body:JSON.stringify(body) }));
+  },
+  async getAudio(id){
+    const e = entryById(id), first = (e && e.audioExt) || 'webm';
+    for(const ext of [first, first === 'webm' ? 'mp4' : 'webm']){
+      const r = await fetch(RAW(`audio/${id}.${ext}`), { cache:'no-store' });
+      if(r.ok) return new Blob([await r.arrayBuffer()], { type:ext === 'mp4' ? 'audio/mp4' : 'audio/webm' });
+    }
+    return null;
+  },
+  async removeAudio(id){
+    for(const ext of ['webm', 'mp4']){
+      const path = `audio/${id}.${ext}`, sha = await this.shaOf(path);
+      if(sha) await this.check(await fetch(this.url(path), { method:'DELETE', headers:this.hdr(), body:JSON.stringify({ message:'delete audio ' + id, sha }) }));
+    }
+  }
+};
+
+/* Shared database: ONE database for every user (config.js -> databaseURL), no profiles, no per-user accounts.
+   Talks to a Firebase Realtime Database over its plain REST API, so there is no SDK and no key in the page
+   (access is governed by the database's rules; see README.md). Same four calls as GH, so syncNow doesn't care which is active. */
+const SHARED_DB = (CFG.databaseURL || '').replace(/\/+$/, '');
+const DB = {
+  label: () => 'the shared database',
+  ready: () => true,
+  url: p => `${SHARED_DB}/${p}.json`,
+  async check(r){ if(!r.ok) throw new Error(`Shared database error ${r.status}` + (r.status === 401 || r.status === 403 ? ' (check the database rules)' : '')); return r; },
+  async list(){                                             // ids only; values are fetched when needed
+    const j = await (await this.check(await fetch(this.url('entries') + '?shallow=true', { cache:'no-store' }))).json();
+    return Object.fromEntries(Object.keys(j || {}).map(k => [k, 'x']));
+  },
+  async read(id){
+    const o = await (await this.check(await fetch(this.url('entries/' + id), { cache:'no-store' }))).json();
+    if(o && o.tags) o.tags = Object.assign(EMPTY_TAGS(), o.tags);   // Realtime Database drops empty arrays; put them back
+    return JSON.stringify(o);
+  },
+  async write(id, text){ await this.check(await fetch(this.url('entries/' + id), { method:'PUT', body:text })); return 'x'; },
+  async remove(id){
+    await this.check(await fetch(this.url('entries/' + id), { method:'DELETE' }));
+    await this.check(await fetch(this.url('audio/' + id), { method:'DELETE' }));   // and its recording
+  },
+  // Audio lives under audio/<id> as base64 split into ~900 KB parts (the database caps one value at 10 MB, so long recordings are chunked).
+  async putAudio(id, blob){
+    const s = await blobToB64(blob), CH = 900000, parts = {};
+    for(let i = 0, n = 0; i < s.length; i += CH, n++) parts['p' + n] = s.slice(i, i + CH);
+    await this.check(await fetch(this.url('audio/' + id), { method:'PUT',
+      body:JSON.stringify({ type:blob.type || 'audio/webm', n:Object.keys(parts).length, parts }) }));
+  },
+  async getAudio(id){
+    const o = await (await this.check(await fetch(this.url('audio/' + id), { cache:'no-store' }))).json();
+    if(!o || !o.parts) return null;
+    let s = ''; for(let i = 0; i < o.n; i++) s += o.parts['p' + i] || '';
+    return b64ToBlob(s, o.type);
+  }
+};
+const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+const b64ToBlob = (s, type) => { const bin = atob(s), u = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type }); };
+DB.canWrite = () => true;                                  // the shared Firebase database is open to everyone
+
+/* The Alive server (server/worker.js): the same GitHub repo as the database, but the server holds the token,
+   so EVERY device can save with nothing configured. Same calls as GH and DB. */
+const SRV = {
+  label: () => 'the Alive server',
+  ready: () => true,
+  canWrite: () => true,
+  async check(r){ if(!r.ok){ const j = await r.json().catch(() => ({})); throw new Error('Server: ' + (j.error || r.status)); } return r; },
+  async list(){ return (await this.check(await fetch(API + '/entries', { cache:'no-store' }))).json(); },
+  // Reads go straight to the public repo (fast, no size limit, no server in the way); ?t= defeats the 5-minute raw cache.
+  async read(id){ return (await this.check(await fetch(RAW(`entries/${id}.json`) + '?t=' + Date.now(), { cache:'no-store' }))).text(); },
+  async write(id, text){
+    const r = await this.check(await fetch(API + '/entries/' + id, { method:'PUT', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ text }) }));
+    return (await r.json()).sha;
+  },
+  async remove(id){ await this.check(await fetch(API + '/entries/' + id, { method:'DELETE' })); },
+  async putAudio(id, blob){ await this.check(await fetch(API + '/audio/' + id, { method:'PUT', headers:{ 'content-type':blob.type || 'audio/webm' }, body:blob })); },
+  async getAudio(id){
+    const e = entryById(id), first = (e && e.audioExt) || 'webm';
+    for(const ext of [first, first === 'webm' ? 'mp4' : 'webm']){
+      const r = await fetch(RAW(`audio/${id}.${ext}`) + '?t=' + Date.now(), { cache:'no-store' });
+      if(r.ok) return new Blob([await r.arrayBuffer()], { type:ext === 'mp4' ? 'audio/mp4' : 'audio/webm' });
+    }
+    return null;
+  }
+};
+const Backend = SHARED_DB ? DB : API ? SRV : GH;           // Firebase if configured, else the Alive server, else GitHub directly
+
+let syncing = false, syncAgain = false, syncTimer = 0;
+function setSync(msg){ const s = $('syncState'); if(s) s.textContent = msg; }
+function scheduleSync(delay = 1500){ clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, delay); }
+
+async function syncNow(){
+  if(!Backend.ready()){ return; }
+  if(syncing){ syncAgain = true; return; }
+  syncing = true; setSync('Syncing…');
+  try{
+    const canWrite = Backend.canWrite();                    // without a GitHub token this device only reads
+    const remote = await Backend.list();                    // id -> sha
+    const known = new Set(store.get('remote', []));
+    // An empty list while this device remembers entries usually means the server or database is misconfigured, not that everything
+    // was deleted. Never let that wipe what's on this device.
+    if(!Object.keys(remote).length && known.size && entries.length) throw new Error('the database returned nothing, so this device kept its entries');
+    const pushed = store.get('pushed', {});                 // id -> version last uploaded (e.u): entries keep changing after recording
+    const localIds = new Set(entries.map(e => String(e.id)));
+    let changed = false;
+
+    for(const e of [...entries]){
+      const id = String(e.id);
+      if(id in remote){                                                                    // already online: push it again if it changed here
+        if(canWrite && (e.u || 0) > (pushed[id] || 0)){ remote[id] = await Backend.write(id, await seal(e), remote[id]); pushed[id] = e.u; }
+        continue;
+      }
+      if(known.has(id)){ entries = entries.filter(x => x !== e); changed = true; continue; }   // deleted on another device
+      if(!canWrite) continue;                                                              // read-only: stays on this device
+      if(e.audio){ const b = await AudioStore.getLocal(e.id); if(b) await Backend.putAudio(e.id, b); }   // recording first, so nobody sees an entry without its audio
+      remote[id] = await Backend.write(id, await seal(e)); pushed[id] = e.u || 0;
+    }
+    for(const id of Object.keys(remote)){
+      if(localIds.has(id)) continue;
+      if(known.has(id)){ if(canWrite){ await Backend.remove(id, remote[id]); delete remote[id]; } continue; }   // deleted here
+      try{ entries.push(await unseal(await Backend.read(id))); changed = true; }                                // new elsewhere: pull
+      catch(err){ console.warn('could not read entry ' + id, err); delete remote[id]; }                         // one bad file doesn't stop the rest
+    }
+    entries.sort((a, b) => b.ts - a.ts);
+    store.set('entries', entries, true);                    // persist without re-triggering sync
+    store.set('remote', Object.keys(remote)); store.set('pushed', pushed);
+    if(changed) renderEntries();
+    setSync('Synced with ' + Backend.label() + ' · ' + new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
+  }catch(err){
+    console.warn('sync failed', err); setSync('Sync failed: ' + (err.message || err));
+    if(!$('sheet').classList.contains('on')) toast('Sync failed: ' + (err.message || err));
+  }
+  syncing = false;
+  if(syncAgain){ syncAgain = false; scheduleSync(500); }
+}
+$('syncNow').onclick = () => {
+  readFields();
+  if(!Backend.ready()){
+    setSync(`Repo must look like owner/name (got "${repoName()}")`);
+    toast('Check repo and token'); return;
+  }
+  syncNow();
+};
+window.addEventListener('online', () => scheduleSync(500));
+if(SHARED_DB || API) setInterval(() => { if(!document.hidden) scheduleSync(0); }, 30000);   // one database for everyone: pick up other people's entries
+document.addEventListener('visibilitychange', () => { if(!document.hidden) scheduleSync(500); });
+
+/* ============ Boot ============ */
+/* ---- Living type ---- */
+let letterIdx = 0;
+function splitNode(node){
+  if(node.nodeType === 3){
+    const frag = document.createDocumentFragment();
+    for(const tok of node.textContent.split(/(\s+)/)){
+      if(!tok) continue;
+      if(/^\s+$/.test(tok)){ frag.append(' '); continue; }
+      const w = el('span', 'w');
+      for(const ch of tok){ const s = el('span', 'l', ch); s.style.setProperty('--i', letterIdx++); w.append(s); }
+      frag.append(w);
+    }
+    return frag;
+  }
+  const c = node.cloneNode(false); node.childNodes.forEach(k => c.append(splitNode(k))); return c;
+}
+function place(e){   // measure after layout: line width and each letter's x-offset keep the gradient continuous
+  const r = e.getBoundingClientRect(); if(!r.width) return;
+  e.style.setProperty('--w', r.width + 'px');
+  e.querySelectorAll('.l').forEach(s => s.style.setProperty('--x', (s.getBoundingClientRect().left - r.left) + 'px'));
+}
+const placeAll = () => document.querySelectorAll('.alive').forEach(place);
+function liven(e, text){
+  if(text != null) e.textContent = text;
+  e.setAttribute('aria-label', e.textContent); letterIdx = 0;
+  e.replaceChildren(...[...e.childNodes].map(splitNode)); e.classList.add('alive'); place(e);
+}
+new ResizeObserver(placeAll).observe($('phone'));
+if(document.fonts) document.fonts.ready.then(placeAll);
+
+{ const p = PROMPTS[new Date().getDate() % PROMPTS.length]; liven($('prompt'), p[0]); $('sub').textContent = p[1];
+  document.querySelectorAll('h2, .logo, #hubTitle, #cardsTitle').forEach(h => liven(h)); }
+document.addEventListener('visibilitychange', () => { if(document.hidden && R.on) toast('Still recording…'); });
+(async function boot(){
+  await store.init();
+  applyView(store.get('view', 'net'));
+  entries = store.get('entries', []);
+  settings = Object.assign(settings, store.get('settings', {}));
+  renderEntries(); renderInsights(store.get('insights', null));
+  scheduleSync(0); announceCapsules();
+})();
+</script>
+</body>
+</html>
