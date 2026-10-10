@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#05060a">
 <title>Alive</title>
+<script src="config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
@@ -422,8 +423,9 @@
     <h2>Settings</h2>
     <label>OpenAI API key (Whisper transcription)</label>
     <input id="kOpenAI" type="password" placeholder="sk-…" autocomplete="off">
-    <label>Anthropic API key (insights)</label>
-    <input id="kAnthropic" type="password" placeholder="sk-ant-…" autocomplete="off">
+    <label>OpenAI API key (text: key points, insights)</label>
+    <input id="kOpenAIText" type="password" placeholder="sk-…" autocomplete="off">
+    <small id="keysShared" hidden>This app uses shared project keys (set in config.js), so you don't need to enter any here.</small>
     <div class="row"><span>Gentle reminders</span><input id="nudges" type="checkbox"></div>
     <small>At most one quiet message every couple of days, only when things look calm: few notifications, nothing on your calendar. No streaks, no guilt.</small>
     <label>Google Calendar access token (optional)</label>
@@ -527,7 +529,23 @@ void main(){
 <script>
 'use strict';
 /* ============ Config ============ */
-const MODELS = { transcribe:'whisper-1', insight:'claude-sonnet-5-5' };
+const CFG = window.ALIVE_CONFIG || {};                              // shared project config, see config.js
+const MODELS = { transcribe:'whisper-1', text:CFG.textModel || 'gpt-4o-mini' };
+// The shared project keys in config.js win. Anything typed in Settings is only a fallback for local testing.
+const KEY = {
+  transcribe: () => CFG.openaiTranscribeKey || settings.openai,
+  text: () => CFG.openaiTextKey || settings.openaiText,
+  shared: () => !!(CFG.openaiTranscribeKey || CFG.openaiTextKey)
+};
+async function llm(system, user, { json = false, max = 600 } = {}){   // one place for every text-processing call (OpenAI chat)
+  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    method:'POST', headers:{ 'content-type':'application/json', Authorization:'Bearer ' + KEY.text() },
+    body:JSON.stringify({ model:MODELS.text, max_tokens:max, temperature:.4,
+      ...(json ? { response_format:{ type:'json_object' } } : {}),
+      messages:[{ role:'system', content:system }, { role:'user', content:user }] }) });
+  if(!r.ok) throw new Error((await r.json().catch(() => ({}))).error?.message || r.status);
+  return (await r.json()).choices[0].message.content;
+}
 const PROMPTS = [
   ['Are you alive or just existing?', 'Say it out loud. Naming it is the first step to lightening it.'],
   ['What gave you energy today?', 'And what quietly drained it? Both are worth hearing.'],
@@ -603,7 +621,7 @@ const store = {
   }
 };
 let entries = [];
-let settings = { openai:'', anthropic:'', nudges:false, gcal:'', ghRepo:'', ghToken:'', ghPass:'' };
+let settings = { openai:'', openaiText:'', nudges:false, gcal:'', ghRepo:'', ghToken:'', ghPass:'' };
 const $ = id => document.getElementById(id);
 function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
 function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('on'), 2400); }
@@ -703,7 +721,7 @@ function setStatus(s){ $('status').textContent = s === 'Ready' ? '' : s; }   // 
 function setLive(t){ const l = $('live'); l.textContent = t; l.classList.toggle('has', !!t); l.scrollTop = l.scrollHeight; }
 
 async function startRecording(){
-  const mode = settings.openai ? 'whisper' : (SR ? 'speech' : null);
+  const mode = KEY.transcribe() ? 'whisper' : (SR ? 'speech' : null);
   if(!mode){ toast('No speech engine — add an OpenAI key in settings'); return; }
   R.mode = mode; R.text = ''; setLive('');
   try{
@@ -792,7 +810,7 @@ async function transcribe(blob){
   const fd = new FormData(); fd.append('file', blob, 'audio.' + ext); fd.append('model', MODELS.transcribe);
   fd.append('response_format', 'verbose_json'); fd.append('timestamp_granularities[]', 'word');   // word times let the transcript follow playback
   const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method:'POST', headers:{ Authorization:'Bearer ' + settings.openai }, body:fd });
+    method:'POST', headers:{ Authorization:'Bearer ' + KEY.transcribe() }, body:fd });
   if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error?.message || r.status);
   const j = await r.json();
   return { text:(j.text || '').trim(), words:(j.words || []).map(w => ({ w:w.word, s:+w.start.toFixed(2), e:+w.end.toFixed(2) })) };
@@ -1022,7 +1040,7 @@ $('readDelete').onclick = () => {
 async function transcribeEntry(id){   // the "posterior transcription": run on a saved recording whenever you like
   const e = entryById(id), blob = await AudioStore.get(id);
   if(!e || !blob){ toast('This recording isn\'t on this device'); return; }
-  if(!settings.openai){ toast('Add your OpenAI key in settings to transcribe'); return; }
+  if(!KEY.transcribe()){ toast('No transcription key set (see config.js)'); return; }
   $('readAction').textContent = 'Transcribing…';
   try{
     const r = await transcribe(blob); e.text = r.text; if(r.words.length) e.words = r.words;
@@ -1032,15 +1050,8 @@ async function transcribeEntry(id){   // the "posterior transcription": run on a
 
 /* ---- Key points + tags (people, projects, work, events, missions) ---- */
 const EMPTY_TAGS = () => ({ people:[], projects:[], work:[], events:[], missions:[] });
-async function claudeEntry(text){
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{ 'content-type':'application/json', 'x-api-key':settings.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-    body:JSON.stringify({ model:MODELS.insight, max_tokens:600,
-      system:'Read one voice-journal entry. Reply with ONLY JSON: {"points":[2-4 short key points, each under 14 words],"tags":{"people":[],"projects":[],"work":[],"events":[],"missions":[]}}. people = named people. projects = things the speaker is building or working on. work = job, employers, colleagues, work topics. events = specific happenings (a dinner, an interview). missions = things the speaker wants or intends to do or become. Max 3 tags per category, short (1-3 words), proper nouns capitalised, otherwise lowercase. Use the entry\'s own language.',
-      messages:[{ role:'user', content:text }] }) });
-  if(!r.ok) throw new Error((await r.json().catch(() => ({}))).error?.message || r.status);
-  const txt = (await r.json()).content.map(b => b.text || '').join('');
+async function aiEntry(text){
+  const txt = await llm('Read one voice-journal entry. Reply with ONLY JSON: {"points":[2-4 short key points, each under 14 words],"tags":{"people":[],"projects":[],"work":[],"events":[],"missions":[]}}. people = named people. projects = things the speaker is building or working on. work = job, employers, colleagues, work topics. events = specific happenings (a dinner, an interview). missions = things the speaker wants or intends to do or become. Max 3 tags per category, short (1-3 words), proper nouns capitalised, otherwise lowercase. Use the entry\'s own language.', text, { json:true, max:600 });
   const j = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
   const tags = EMPTY_TAGS(); for(const k in tags) tags[k] = (j.tags && Array.isArray(j.tags[k]) ? j.tags[k] : []).map(String).slice(0, 3);
   return { points:(j.points || []).map(String).slice(0, 4), tags };
@@ -1062,7 +1073,7 @@ function localEntry(text){
 async function analyzeEntry(id){
   const e = entries.find(x => x.id === id); if(!e || !isOpen(e)) return;
   let res = null;
-  if(settings.anthropic){ try{ res = await claudeEntry(e.text); }catch(err){ console.warn('entry analysis failed', err); toast('AI failed, using local analysis'); } }
+  if(KEY.text()){ try{ res = await aiEntry(e.text); }catch(err){ console.warn('entry analysis failed', err); toast('AI failed, using local analysis'); } }
   res = res || localEntry(e.text);
   const cur = entries.find(x => x.id === id); if(!cur) return;   // may have been deleted or replaced by a sync meanwhile
   cur.points = res.points; cur.tags = res.tags;
@@ -1118,7 +1129,7 @@ function localInsights(list){
   const score = pos + neg ? (pos - neg) / (pos + neg) : 0;
   const part = ['mornings','afternoons','evenings','late nights'][hours.indexOf(Math.max(...hours))];
   return {
-    summary:`Across ${list.length} entr${list.length>1?'ies':'y'}, your mood leans ${score>.2?'positive':score<-.2?'heavy':'mixed'}. (Local analysis — add an Anthropic key for deeper insight.)`,
+    summary:`Across ${list.length} entr${list.length>1?'ies':'y'}, your mood leans ${score>.2?'positive':score<-.2?'heavy':'mixed'}. (Local analysis — add an OpenAI text key for deeper insight.)`,
     mood:{ label: score>.2?'Uplifted':score<-.2?'Strained':'Balanced', score },
     themes: top.map(([w,n]) => ({ name:w, detail:`Mentioned ${n} time${n>1?'s':''}` })),
     patterns:[`You tend to reflect in the ${part}.`, top[0] ? `"${top[0][0]}" keeps coming back — it may be central right now.` : 'Record a few more entries to reveal patterns.'],
@@ -1127,16 +1138,10 @@ function localInsights(list){
   };
 }
 
-async function claudeInsights(list){
+async function aiInsights(list){
   const corpus = list.slice(0, 40).reverse().map(e => `[${new Date(e.ts).toISOString()}] ${e.text}`).join('\n\n');
   const system = 'You are Alive, a warm, perceptive reflection coach. Analyse the user\'s voice-journal entries and find real patterns in their life: recurring themes, emotional trends, energy drains and sources, avoided things, implied values. Be specific, cite their own words, never generic, never diagnose. Reply with ONLY JSON: {"summary":string,"mood":{"label":string,"score":number -1..1},"themes":[{"name":string,"detail":string}],"patterns":[string],"purpose":string,"actions":[string]} with 3-5 themes, 2-4 patterns, 2-3 actions.';
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{ 'content-type':'application/json', 'x-api-key':settings.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-    body:JSON.stringify({ model:MODELS.insight, max_tokens:1500, system, messages:[{ role:'user', content:corpus }] })
-  });
-  if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error?.message || r.status);
-  const txt = (await r.json()).content.map(b => b.text || '').join('');
+  const txt = await llm(system, corpus, { json:true, max:1500 });
   return JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
 }
 
@@ -1158,7 +1163,7 @@ $('analyze').addEventListener('click', async () => {
   if(!open.length){ toast('Record something first'); return; }
   const b = $('analyze'); b.disabled = true; b.textContent = 'Thinking…'; S.procT = 1;
   try{
-    const res = settings.anthropic ? await claudeInsights(open) : localInsights(open);
+    const res = KEY.text() ? await aiInsights(open) : localInsights(open);
     store.set('insights', res); renderInsights(res);
   }catch(err){
     console.error(err); toast('AI failed, using local analysis'); const res = localInsights(open); renderInsights(res);
@@ -1310,7 +1315,10 @@ function paintScroll(){
 { const ro = new ResizeObserver(layout); [heroEl, entriesEl, $('web'), $('insightOut'), scroller].forEach(n => ro.observe(n)); }
 scroller.addEventListener('scroll', paintScroll, { passive:true });
 $('openSettings').onclick = () => {
-  $('kOpenAI').value = settings.openai; $('kAnthropic').value = settings.anthropic;
+  $('kOpenAI').value = settings.openai; $('kOpenAIText').value = settings.openaiText;
+  const shared = KEY.shared();                                   // shared project keys make the key fields pointless
+  [$('kOpenAI'), $('kOpenAIText')].forEach(i => { i.hidden = shared; if(i.previousElementSibling) i.previousElementSibling.hidden = shared; });
+  $('keysShared').hidden = !shared;
   $('kGcal').value = settings.gcal; $('nudges').checked = settings.nudges;
   $('kRepo').value = settings.ghRepo; $('kGhToken').value = settings.ghToken; $('kPass').value = settings.ghPass;
   $('storeState').textContent = store.mode === 'memory only'
@@ -1320,7 +1328,7 @@ $('openSettings').onclick = () => {
 };
 $('closeSettings').onclick = () => $('sheet').classList.remove('on');
 function readFields(){   // fields -> settings, so nothing depends on pressing Save first
-  settings = { openai:$('kOpenAI').value.trim(), anthropic:$('kAnthropic').value.trim(),
+  settings = { openai:$('kOpenAI').value.trim(), openaiText:$('kOpenAIText').value.trim(),
                gcal:$('kGcal').value.trim(), nudges:$('nudges').checked,
                ghRepo:$('kRepo').value.trim().replace(/^(https?:\/\/)?(www\.)?github\.com\//, '').replace(/[\s\/]+$/, '').replace(/\.git$/, ''),
                ghToken:$('kGhToken').value.replace(/[^\x21-\x7E]/g, ''), ghPass:$('kPass').value };   // token: strips spaces, newlines, zero-width chars
@@ -1387,16 +1395,11 @@ async function isQuietMoment(){
 }
 
 async function composeNudge(){
-  if(settings.anthropic && entries.length){
+  if(KEY.text() && entries.length){
     try{
       const recent = entries.slice(0, 5).map(e => e.text).join('\n---\n');
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{ 'content-type':'application/json', 'x-api-key':settings.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-        body:JSON.stringify({ model:MODELS.insight, max_tokens:80,
-          system:'Write ONE sentence in the first person ("I"), at most 22 words, quiet and elegant, that the reader will recognise as a thought in their own voice, inviting them to speak to themselves. Draw on their recent journal entries if relevant. No emojis, no exclamation marks, no guilt, no mention of apps, streaks or recording. Output only the sentence.',
-          messages:[{ role:'user', content:recent }] }) });
-      if(r.ok){ const t = (await r.json()).content[0].text.trim().replace(/^["“]|["”]$/g, ''); if(t) return t; }
+      const t = (await llm('Write ONE sentence in the first person ("I"), at most 22 words, quiet and elegant, that the reader will recognise as a thought in their own voice, inviting them to speak to themselves. Draw on their recent journal entries if relevant. No emojis, no exclamation marks, no guilt, no mention of apps, streaks or recording. Output only the sentence.', recent, { max:80 })).trim().replace(/^["“]|["”]$/g, '');
+      if(t) return t;
     }catch{}
   }
   return NUDGES[Math.floor(Math.random() * NUDGES.length)];
@@ -1447,7 +1450,7 @@ async function aesKey(pass, salt){
 }
 async function seal(obj){
   const plain = JSON.stringify(obj);
-  if(!settings.ghPass) return plain;
+  if(!settings.ghPass || SHARED_DB) return plain;           // the shared database is open to every user, so entries there are plain
   const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, await aesKey(settings.ghPass, salt), new TextEncoder().encode(plain)));
   return JSON.stringify({ v:1, salt:b64.encBytes(salt), iv:b64.encBytes(iv), ct:b64.encBytes(ct) });
@@ -1495,16 +1498,40 @@ const GH = {
   }
 };
 
+/* Shared database: ONE database for every user (config.js -> databaseURL), no profiles, no per-user accounts.
+   Talks to a Firebase Realtime Database over its plain REST API, so there is no SDK and no key in the page
+   (access is governed by the database's rules; see README.md). Same four calls as GH, so syncNow doesn't care which is active. */
+const SHARED_DB = (CFG.databaseURL || '').replace(/\/+$/, '');
+const DB = {
+  label: () => 'the shared database',
+  ready: () => true,
+  url: p => `${SHARED_DB}/${p}.json`,
+  async check(r){ if(!r.ok) throw new Error(`Shared database error ${r.status}` + (r.status === 401 || r.status === 403 ? ' (check the database rules)' : '')); return r; },
+  async list(){                                             // ids only; values are fetched when needed
+    const j = await (await this.check(await fetch(this.url('entries') + '?shallow=true', { cache:'no-store' }))).json();
+    return Object.fromEntries(Object.keys(j || {}).map(k => [k, 'x']));
+  },
+  async read(id){
+    const o = await (await this.check(await fetch(this.url('entries/' + id), { cache:'no-store' }))).json();
+    if(o && o.tags) o.tags = Object.assign(EMPTY_TAGS(), o.tags);   // Realtime Database drops empty arrays; put them back
+    return JSON.stringify(o);
+  },
+  async write(id, text){ await this.check(await fetch(this.url('entries/' + id), { method:'PUT', body:text })); return 'x'; },
+  async remove(id){ await this.check(await fetch(this.url('entries/' + id), { method:'DELETE' })); }
+};
+GH.label = () => settings.ghRepo;
+const Backend = SHARED_DB ? DB : GH;                       // the shared database wins when configured
+
 let syncing = false, syncAgain = false, syncTimer = 0;
 function setSync(msg){ const s = $('syncState'); if(s) s.textContent = msg; }
 function scheduleSync(delay = 1500){ clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, delay); }
 
 async function syncNow(){
-  if(!GH.ready()){ return; }
+  if(!Backend.ready()){ return; }
   if(syncing){ syncAgain = true; return; }
   syncing = true; setSync('Syncing…');
   try{
-    const remote = await GH.list();                         // id -> sha
+    const remote = await Backend.list();                    // id -> sha
     const known = new Set(store.get('remote', []));
     const localIds = new Set(entries.map(e => String(e.id)));
     let changed = false;
@@ -1513,18 +1540,18 @@ async function syncNow(){
       const id = String(e.id);
       if(id in remote) continue;
       if(known.has(id)){ entries = entries.filter(x => x !== e); changed = true; }       // deleted on another device
-      else remote[id] = await GH.write(id, await seal(e));                                // new here: push
+      else remote[id] = await Backend.write(id, await seal(e));                           // new here: push
     }
     for(const id of Object.keys(remote)){
       if(localIds.has(id)) continue;
-      if(known.has(id)){ await GH.remove(id, remote[id]); delete remote[id]; }           // deleted here
-      else{ entries.push(await unseal(await GH.read(id))); changed = true; }              // new elsewhere: pull
+      if(known.has(id)){ await Backend.remove(id, remote[id]); delete remote[id]; }       // deleted here
+      else{ entries.push(await unseal(await Backend.read(id))); changed = true; }          // new elsewhere: pull
     }
     entries.sort((a, b) => b.ts - a.ts);
     store.set('entries', entries, true);                    // persist without re-triggering sync
     store.set('remote', Object.keys(remote));
     if(changed) renderEntries();
-    setSync('Synced with ' + settings.ghRepo + ' · ' + new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
+    setSync('Synced with ' + Backend.label() + ' · ' + new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
   }catch(err){
     console.warn('sync failed', err); setSync('Sync failed: ' + (err.message || err));
     if(!$('sheet').classList.contains('on')) toast('Sync failed: ' + (err.message || err));
@@ -1534,13 +1561,14 @@ async function syncNow(){
 }
 $('syncNow').onclick = () => {
   readFields();
-  if(!GH.ready()){
+  if(!Backend.ready()){
     setSync(!/^[\w.-]+\/[\w.-]+$/.test(settings.ghRepo) ? `Repo must look like owner/name (got "${settings.ghRepo}")` : 'Token is empty');
     toast('Check repo and token'); return;
   }
   syncNow();
 };
 window.addEventListener('online', () => scheduleSync(500));
+if(SHARED_DB) setInterval(() => { if(!document.hidden) scheduleSync(0); }, 30000);   // everyone shares one database: pick up other people's entries
 document.addEventListener('visibilitychange', () => { if(!document.hidden) scheduleSync(500); });
 
 /* ============ Boot ============ */
