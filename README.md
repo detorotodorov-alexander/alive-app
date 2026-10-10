@@ -23,6 +23,17 @@ then open http://localhost:5173. On a phone you need HTTPS for the microphone (a
 - Time capsules, quiet-moment reminders, key points and tags per entry.
 - Shared sync: one Firebase database for everyone (see below), or an optional encrypted sync to your own GitHub repo.
 
+## Demo setup (GitHub is the database)
+
+- **History:** `entries/` holds the past entries (a Spanish demo history, Aug–Oct 2026). Any device that opens the site loads them
+  from this public repo; no login.
+- **Recording live:** on the computer used for the demo, press and hold the title to open Settings and paste a GitHub token
+  (fine-grained, this repo only, *Contents: read and write*). It is saved in that browser only. From then on every recording is
+  uploaded here: the audio to `audio/<id>.webm`, the entry to `entries/<id>.json`, and the entry again once it has its key points
+  and its "echoes".
+- **Echoes from your past:** after each new recording the AI reads the whole history and writes how today connects to it, with
+  links to the past entries it draws on (open a card to see it).
+
 ## Shared keys and database (`config.js`)
 
 The app has no accounts and no per-user setup. Everyone uses the same configuration, which lives in [`config.js`](config.js):

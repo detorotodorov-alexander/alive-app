@@ -326,6 +326,11 @@
   .tw.now{color:#ffe08a;text-shadow:0 0 14px rgba(255,214,120,.5)}
   .trans.plain{color:#efe6cf}
   .dimp{color:#a99f84;font-style:italic}
+  #readEcho{margin-top:5cqw}
+  .echo{font-size:4.4cqw;line-height:1.6;color:#f4ecd8;margin-bottom:3cqw}
+  .echolink{display:flex;gap:3cqw;align-items:baseline;width:100%;text-align:left;background:rgba(243,236,220,.06);
+    border:1px solid var(--line);border-radius:4cqw;padding:3cqw 4cqw;margin-bottom:2cqw;color:#e9dfc6;font-size:3.6cqw}
+  .echolink b{flex:none;font-weight:500;color:var(--calm);font-size:3.3cqw;letter-spacing:.04em}
   #readPts{margin-top:5cqw}
   #readPts .pts{color:#f1e7cd}
   .rtags{margin-top:1cqw}
@@ -414,6 +419,7 @@
       <div class="rctl"><button class="wplay" id="readPlay" aria-label="Play">▶</button><span id="readTime">0:00</span></div>
       <h3 class="hub-h">Transcript</h3>
       <div class="trans" id="readText"></div>
+      <div id="readEcho"></div>
       <div id="readPts"></div>
       <div class="rbtns"><button class="btn ghost" id="readAction"></button><button class="btn ghost" id="readDelete">Delete</button></div>
     </div>
@@ -593,8 +599,8 @@ const AudioStore = {
   },
   async get(id){                                                  // local cache first, then the shared database
     const local = await this.getLocal(id); if(local) return local;
-    if(!SHARED_DB) return null;
-    try{ const b = await DB.getAudio(id); if(b) this.put(id, b); return b; }
+    if(!Backend.ready()) return null;
+    try{ const b = await Backend.getAudio(id); if(b) this.put(id, b); return b; }
     catch(err){ console.warn('could not download audio', err); return null; }
   },
   async has(id){ return !!(await this.get(id)); },
@@ -798,7 +804,7 @@ async function stopRecording(){
   S.procT = 0; $('rec').disabled = false; setStatus('Ready');
   if(text || blob){                                         // keep the audio even if transcription failed; it can be transcribed later
     const entry = { id:Date.now(), ts:Date.now(), dur, text };
-    if(blob){ entry.audio = true; AudioStore.put(entry.id, blob); }
+    if(blob){ entry.audio = true; entry.audioExt = audioExt(blob.type); AudioStore.put(entry.id, blob); }
     if(wave) entry.wave = wave;
     if(words && words.length) entry.words = words;
     const cap = capsuleUntil();
@@ -952,7 +958,7 @@ async function togglePlay(id, atFrac){
     return;
   }
   const blob = await AudioStore.get(id);
-  if(!blob){ toast(SHARED_DB ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
+  if(!blob){ toast(Backend.ready() ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
   stopPlayer();
   const a = new Audio(); a.src = URL.createObjectURL(blob); Player.id = id; Player.a = a; Player.url = a.src;
   a.addEventListener('timeupdate', paintPlayer); a.addEventListener('play', paintPlayer); a.addEventListener('pause', paintPlayer);
@@ -991,6 +997,16 @@ function renderReader(){
   box.classList.toggle('plain', !e.audio);
   if(!e.text) box.append(el('p', 'dimp', e.audio ? 'This recording hasn\'t been transcribed yet.' : 'No text.'));
   else wordsOf(e).forEach((w, i) => { const s = el('span', 'tw', String(w.w).trim()); s.dataset.i = i; s.dataset.s = w.s; box.append(s, ' '); readWords.push(s); });
+  const echo = $('readEcho'); echo.replaceChildren();               // how this entry connects to the past; links open those entries
+  if(e.echo && e.echo.reflection){
+    echo.append(el('h3', 'hub-h', 'Echoes from your past'), el('p', 'echo', e.echo.reflection));
+    for(const l of e.echo.links || []){
+      const p = entryById(l.id); if(!p) continue;
+      const b = el('button', 'echolink');
+      b.append(el('b', null, new Date(p.ts).toLocaleDateString([], { day:'numeric', month:'short' })), el('span', null, l.why));
+      b.onclick = () => openReader(l.id); echo.append(b);
+    }
+  }else if(e.text && KEY.text() && entries.length > 1){ echo.append(el('h3', 'hub-h', 'Echoes from your past'), el('p', 'dimp', 'Connecting this to your past…')); }
   const pts = $('readPts'); pts.replaceChildren();
   if(e.points && e.points.length){ pts.append(el('h3', 'hub-h', 'Key points')); const ul = el('ul', 'pts'); e.points.forEach(p => ul.append(el('li', null, p))); pts.append(ul); }
   if(e.tags){
@@ -1046,11 +1062,11 @@ $('readDelete').onclick = () => {
 };
 async function transcribeEntry(id){   // the "posterior transcription": run on a saved recording whenever you like
   const e = entryById(id), blob = await AudioStore.get(id);
-  if(!e || !blob){ toast(SHARED_DB ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
+  if(!e || !blob){ toast(Backend.ready() ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
   if(!KEY.transcribe()){ toast('No transcription key set (see config.js)'); return; }
   $('readAction').textContent = 'Transcribing…';
   try{
-    const r = await transcribe(blob); e.text = r.text; if(r.words.length) e.words = r.words;
+    const r = await transcribe(blob); e.text = r.text; if(r.words.length) e.words = r.words; e.u = Date.now();
     store.set('entries', entries); renderEntries(); renderReader(); if(r.text) analyzeEntry(id);
   }catch(err){ toast('Transcription failed: ' + (err.message || err)); renderReader(); }
 }
@@ -1083,9 +1099,31 @@ async function analyzeEntry(id){
   if(KEY.text()){ try{ res = await aiEntry(e.text); }catch(err){ console.warn('entry analysis failed', err); toast('AI failed, using local analysis'); } }
   res = res || localEntry(e.text);
   const cur = entries.find(x => x.id === id); if(!cur) return;   // may have been deleted or replaced by a sync meanwhile
-  cur.points = res.points; cur.tags = res.tags;
+  cur.points = res.points; cur.tags = res.tags; cur.u = Date.now();   // u = version, so sync re-uploads the enriched entry
   store.set('entries', entries); renderEntries();
   if(readerEl.classList.contains('on') && readId === id) renderReader();
+  if(KEY.text()) aiConnect(id);                                      // then relate it to everything said before
+}
+
+/* ---- Echoes: how a new entry connects to the person's past ----
+   The AI gets the new entry plus a compact version of every past entry (date, key points or the start of the text) and returns a
+   short reflection spoken to you, and the 1-4 past entries it draws on. Shown in the reader as "Echoes from your past". */
+async function aiConnect(id){
+  const e = entryById(id); if(!e || !e.text) return;
+  const past = entries.filter(x => x.id !== id && isOpen(x) && x.text).slice(0, 80);
+  if(!past.length) return;
+  const day = ts => new Date(ts).toISOString().slice(0, 10);
+  const history = past.map(x => `#${x.id} [${day(x.ts)}] ${(x.points && x.points.length ? x.points.join('; ') : x.text.slice(0, 300))}`).join('\n');
+  try{
+    const txt = await llm('You are Alive, a perceptive companion that remembers everything a person has told it. You get a NEW voice-journal entry and their PAST entries (each with an #id and date). Find how today connects to their past: recurring situations, people, feelings, loops they keep falling into, promises they made to themselves, progress they made. Reply with ONLY JSON: {"reflection": "2-3 sentences spoken to them as you, warm and specific, mentioning when things happened (e.g. three weeks ago)", "links": [{"id": number, "why": "under 14 words"}]} with the 1-4 most relevant past entries. Use the language of the new entry. Never diagnose.',
+      `NEW ENTRY [${day(e.ts)}]: ${e.text}\n\nPAST ENTRIES:\n${history}`, { json:true, max:500 });
+    const j = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+    const cur = entryById(id); if(!cur) return;
+    cur.echo = { reflection:String(j.reflection || ''), links:(j.links || []).map(l => ({ id:+l.id, why:String(l.why || '') })).filter(l => entryById(l.id)).slice(0, 4) };
+    cur.u = Date.now();
+    store.set('entries', entries); renderEntries();
+    if(readerEl.classList.contains('on') && readId === id) renderReader();
+  }catch(err){ console.warn('connecting to the past failed', err); }
 }
 
 /* ---- Time capsules ---- */
@@ -1328,6 +1366,7 @@ $('openSettings').onclick = () => {
   $('keysShared').hidden = !shared;
   $('kGcal').value = settings.gcal; $('nudges').checked = settings.nudges;
   $('kRepo').value = settings.ghRepo; $('kGhToken').value = settings.ghToken; $('kPass').value = settings.ghPass;
+  $('kRepo').placeholder = CFG.githubRepo || 'you/alive-journal';   // empty field = the project repo from config.js
   $('storeState').textContent = store.mode === 'memory only'
     ? 'This browser is blocking storage, so settings will be forgotten on reload. Open Alive from http://localhost (or your phone\'s browser) instead of a file or preview pane.'
     : 'Settings are saved on this device (' + store.mode + ').';
@@ -1470,13 +1509,25 @@ async function unseal(text){
   return JSON.parse(new TextDecoder().decode(pt));
 }
 
+/* GitHub as the database (config.js -> githubRepo). The repo is public, so ANY device can read every entry and recording
+   with no login (entries/<id>.json, audio/<id>.webm). Writing needs a GitHub token, entered once in Settings on the device that
+   records; it is stored only in that browser and never in the repo (a token in a public repo gets revoked by GitHub). */
+const repoName = () => settings.ghRepo || CFG.githubRepo || '';
+const RAW = p => `https://raw.githubusercontent.com/${repoName()}/main/${p}`;   // public files: no token, no API rate limit
+const audioExt = t => /mp4|m4a|aac/.test(t || '') ? 'mp4' : 'webm';
 const GH = {
-  ready: () => /^[\w.-]+\/[\w.-]+$/.test(settings.ghRepo) && !!settings.ghToken,
-  url: p => `https://api.github.com/repos/${settings.ghRepo}/contents/${p}`,
-  hdr: (accept = 'application/vnd.github+json') => ({ Authorization:'Bearer ' + settings.ghToken, Accept:accept, 'X-GitHub-Api-Version':'2022-11-28' }),
+  label: () => repoName(),
+  ready: () => /^[\w.-]+\/[\w.-]+$/.test(repoName()),
+  canWrite: () => !!settings.ghToken,
+  url: p => `https://api.github.com/repos/${repoName()}/contents/${p}`,
+  hdr(accept = 'application/vnd.github+json'){
+    const h = { Accept:accept, 'X-GitHub-Api-Version':'2022-11-28' };
+    if(settings.ghToken) h.Authorization = 'Bearer ' + settings.ghToken;
+    return h;
+  },
   async check(r){
     if(!r.ok){
-      const j = await r.json().catch(() => ({})), t = settings.ghToken;
+      const j = await r.json().catch(() => ({})), t = settings.ghToken || '';
       const hint = `token ${t.slice(0, t.startsWith('github_pat_') ? 11 : 4)}…, ${t.length} chars`;
       throw new Error(r.status === 401 ? `GitHub says "${j.message || 'Unauthorized'}" (${hint}; fine-grained tokens are ~93 chars)`
         : r.status === 404 ? 'Repo not found, or the token has no access to it (check owner/name and repo selection)'
@@ -1488,13 +1539,16 @@ const GH = {
   async list(){
     const r = await fetch(this.url('entries'), { headers:this.hdr(), cache:'no-store' });
     if(r.status === 404){                                  // folder missing: either empty repo or wrong repo; verify the repo
-      await this.check(await fetch(`https://api.github.com/repos/${settings.ghRepo}`, { headers:this.hdr() }));
+      await this.check(await fetch(`https://api.github.com/repos/${repoName()}`, { headers:this.hdr() }));
       return {};
     }
     const arr = await (await this.check(r)).json();
     return Object.fromEntries(arr.filter(f => f.name.endsWith('.json')).map(f => [f.name.slice(0, -5), f.sha]));
   },
-  async read(id){ return (await this.check(await fetch(this.url(`entries/${id}.json`), { headers:this.hdr('application/vnd.github.raw+json'), cache:'no-store' }))).text(); },
+  async read(id){
+    if(this.canWrite()) return (await this.check(await fetch(this.url(`entries/${id}.json`), { headers:this.hdr('application/vnd.github.raw+json'), cache:'no-store' }))).text();
+    return (await this.check(await fetch(RAW(`entries/${id}.json`), { cache:'no-store' }))).text();
+  },
   async write(id, text, sha){
     const body = { message:'entry ' + id, content:b64.enc(text) }; if(sha) body.sha = sha;
     const r = await this.check(await fetch(this.url(`entries/${id}.json`), { method:'PUT', headers:this.hdr(), body:JSON.stringify(body) }));
@@ -1502,6 +1556,27 @@ const GH = {
   },
   async remove(id, sha){
     await this.check(await fetch(this.url(`entries/${id}.json`), { method:'DELETE', headers:this.hdr(), body:JSON.stringify({ message:'delete ' + id, sha }) }));
+    await this.removeAudio(id);
+  },
+  async shaOf(path){ const r = await fetch(this.url(path), { headers:this.hdr(), cache:'no-store' }); return r.ok ? (await r.json()).sha : null; },
+  async putAudio(id, blob){
+    const path = `audio/${id}.${audioExt(blob.type)}`, body = { message:'audio ' + id, content:await blobToB64(blob) };
+    const sha = await this.shaOf(path); if(sha) body.sha = sha;                    // re-uploading replaces it
+    await this.check(await fetch(this.url(path), { method:'PUT', headers:this.hdr(), body:JSON.stringify(body) }));
+  },
+  async getAudio(id){
+    const e = entryById(id), first = (e && e.audioExt) || 'webm';
+    for(const ext of [first, first === 'webm' ? 'mp4' : 'webm']){
+      const r = await fetch(RAW(`audio/${id}.${ext}`), { cache:'no-store' });
+      if(r.ok) return new Blob([await r.arrayBuffer()], { type:ext === 'mp4' ? 'audio/mp4' : 'audio/webm' });
+    }
+    return null;
+  },
+  async removeAudio(id){
+    for(const ext of ['webm', 'mp4']){
+      const path = `audio/${id}.${ext}`, sha = await this.shaOf(path);
+      if(sha) await this.check(await fetch(this.url(path), { method:'DELETE', headers:this.hdr(), body:JSON.stringify({ message:'delete audio ' + id, sha }) }));
+    }
   }
 };
 
@@ -1544,8 +1619,8 @@ const DB = {
 };
 const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
 const b64ToBlob = (s, type) => { const bin = atob(s), u = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type }); };
-GH.label = () => settings.ghRepo;
-const Backend = SHARED_DB ? DB : GH;                       // the shared database wins when configured
+DB.canWrite = () => true;                                  // the shared Firebase database is open to everyone
+const Backend = SHARED_DB ? DB : GH;                       // Firebase wins when configured, otherwise the GitHub repo
 
 let syncing = false, syncAgain = false, syncTimer = 0;
 function setSync(msg){ const s = $('syncState'); if(s) s.textContent = msg; }
@@ -1556,28 +1631,33 @@ async function syncNow(){
   if(syncing){ syncAgain = true; return; }
   syncing = true; setSync('Syncing…');
   try{
+    const canWrite = Backend.canWrite();                    // without a GitHub token this device only reads
     const remote = await Backend.list();                    // id -> sha
     const known = new Set(store.get('remote', []));
+    const pushed = store.get('pushed', {});                 // id -> version last uploaded (e.u): entries keep changing after recording
     const localIds = new Set(entries.map(e => String(e.id)));
     let changed = false;
 
     for(const e of [...entries]){
       const id = String(e.id);
-      if(id in remote) continue;
-      if(known.has(id)){ entries = entries.filter(x => x !== e); changed = true; }       // deleted on another device
-      else{                                                                                // new here: push
-        if(SHARED_DB && e.audio){ const b = await AudioStore.getLocal(e.id); if(b) await DB.putAudio(e.id, b); }   // recording first, so nobody sees an entry without its audio
-        remote[id] = await Backend.write(id, await seal(e));
+      if(id in remote){                                                                    // already online: push it again if it changed here
+        if(canWrite && (e.u || 0) > (pushed[id] || 0)){ remote[id] = await Backend.write(id, await seal(e), remote[id]); pushed[id] = e.u; }
+        continue;
       }
+      if(known.has(id)){ entries = entries.filter(x => x !== e); changed = true; continue; }   // deleted on another device
+      if(!canWrite) continue;                                                              // read-only: stays on this device
+      if(e.audio){ const b = await AudioStore.getLocal(e.id); if(b) await Backend.putAudio(e.id, b); }   // recording first, so nobody sees an entry without its audio
+      remote[id] = await Backend.write(id, await seal(e)); pushed[id] = e.u || 0;
     }
     for(const id of Object.keys(remote)){
       if(localIds.has(id)) continue;
-      if(known.has(id)){ await Backend.remove(id, remote[id]); delete remote[id]; }       // deleted here
-      else{ entries.push(await unseal(await Backend.read(id))); changed = true; }          // new elsewhere: pull
+      if(known.has(id)){ if(canWrite){ await Backend.remove(id, remote[id]); delete remote[id]; } continue; }   // deleted here
+      try{ entries.push(await unseal(await Backend.read(id))); changed = true; }                                // new elsewhere: pull
+      catch(err){ console.warn('could not read entry ' + id, err); delete remote[id]; }                         // one bad file doesn't stop the rest
     }
     entries.sort((a, b) => b.ts - a.ts);
     store.set('entries', entries, true);                    // persist without re-triggering sync
-    store.set('remote', Object.keys(remote));
+    store.set('remote', Object.keys(remote)); store.set('pushed', pushed);
     if(changed) renderEntries();
     setSync('Synced with ' + Backend.label() + ' · ' + new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
   }catch(err){
@@ -1590,7 +1670,7 @@ async function syncNow(){
 $('syncNow').onclick = () => {
   readFields();
   if(!Backend.ready()){
-    setSync(!/^[\w.-]+\/[\w.-]+$/.test(settings.ghRepo) ? `Repo must look like owner/name (got "${settings.ghRepo}")` : 'Token is empty');
+    setSync(`Repo must look like owner/name (got "${repoName()}")`);
     toast('Check repo and token'); return;
   }
   syncNow();
