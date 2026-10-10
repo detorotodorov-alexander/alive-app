@@ -1,20 +1,20 @@
-# Alive v2: timeline + pipeline (archivado)
+# Alive v2: timeline + pipeline (archived)
 
-Snapshot de la app antes de empezar la v3. Es una copia exacta: se abre sirviendo esta carpeta (`python -m http.server`) y entrando en `index.html`.
+Snapshot of the app before v3 started. It is an exact copy: open it by serving this folder (`python -m http.server`) and going to `index.html`.
 
-## Qué incluye
-- **Pantalla principal:** título arriba, red de recuerdos grande al centro, barra de tareas abajo (Memories | grabar | Web/Timeline).
-- **Timeline:** línea vertical, puntos clave en colores por tipo (Mood, People, Plan, Work) y tres tamaños por importancia.
-- **Memories:** las tarjetas en una hoja que se abre desde la barra; el lector con audio y transcripción palabra a palabra.
-- **Pipeline de texto** (`pipeline.js`, ver `PIPELINE.md`): puerta de 10 s / 12 palabras, extracción solo de lo explícito con cita literal,
-  verificación por código, búsqueda del pasado y enlaces con cita de las dos entradas. Sin resumen inventado.
-- **Embeddings** (`api/embed.js`): búsqueda del pasado por significado (OpenAI text-embedding-3-small, 256 dimensiones).
-- **Servidor** (`api/`): funciones de Vercel que guardan las claves y reenvían a OpenAI y GitHub.
-- **Datos:** GitHub como base de datos (`entries/`, `audio/`) a través del servidor.
+## What it includes
+- **Main screen:** title on top, big memory web in the centre, task bar at the bottom (Memories | record | Web/Timeline).
+- **Timeline:** vertical line, key points coloured by type (Mood, People, Plan, Work) and three sizes by importance.
+- **Memories:** the cards in a sheet opened from the task bar; the reader with audio and word-by-word transcript.
+- **Text pipeline** (`pipeline.js`, see `PIPELINE.md`): 10 s / 12 word gate, extraction of only what is explicit with a verbatim quote,
+  verification by code, search of the past and links with a quote from both entries. No invented summary.
+- **Embeddings** (`api/embed.js`): search of the past by meaning (OpenAI text-embedding-3-small, 256 dimensions).
+- **Server** (`api/`): Vercel functions that keep the keys and forward to OpenAI and GitHub.
+- **Data:** GitHub as the database (`entries/`, `audio/`) through the server.
 
-## Estado
-- Las 2 últimas piezas (pipeline y embeddings) están solo en local, **no publicadas** cuando se archivó.
-- `config.js` no tiene claves; `apiURL` apunta al servidor de Vercel (`https://alive-app-6e.vercel.app/api`), que es el que las guarda.
+## State
+- The last 2 pieces (pipeline and embeddings) were only local, **not published**, when this was archived.
+- `config.js` has no keys; `apiURL` points at the Vercel server (`https://alive-app-6e.vercel.app/api`), which keeps them.
 
-## Cómo volver a esta versión
-`git checkout v2-archive -- .` desde la raíz, o copiar esta carpeta encima de la raíz.
+## How to go back to this version
+`git checkout v2-archive -- .` from the root, or copy this folder over the root.

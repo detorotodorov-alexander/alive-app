@@ -1,85 +1,86 @@
-# Pipeline de texto de Alive
+# Alive's text pipeline
 
-## El problema
+## The problem
 
-El modelo veía la entrada nueva **y todo el historial**, con la instrucción de "encontrar patrones". Sin nada que lo frenara, ve patrones donde
-no los hay y se inventa un resumen cálido. Medido con el método anterior sobre la misma entrada:
+The model used to see the new entry **and the whole history**, with the instruction to "find patterns". With nothing holding it back, it sees patterns
+that aren't there and invents a warm summary. Measured with the previous method on the same entry:
 
-| Entrada | Lo que escribía el método anterior |
+| Entry | What the previous method wrote |
 |---|---|
-| "Hoy ha hecho buen tiempo, he salido a dar una vuelta, he comprado fruta… Un día normal." | "…un buen contraste con los **momentos de ansiedad y presión** que has sentido en las últimas semanas, **especialmente antes de la entrega del TFG**." (nada de eso se dijo hoy) |
-| "Hoy me he sentido raro. No ha pasado nada en concreto." | "…como hace **tres días cuando hablaste con Lucía** y sentiste que solo existías entre entregas." (no hay ninguna relación explícita) |
+| "The weather was nice today, I went for a walk, bought fruit… A normal day." | "…a good contrast with the **moments of anxiety and pressure** you've felt in recent weeks, **especially before the thesis submission**." (none of that was said today) |
+| "I felt weird today. Nothing in particular happened." | "…like **three days ago when you talked to Lucía** and felt that you only existed between deadlines." (there is no explicit relation) |
 
-## La regla
+## The rule
 
-**El modelo solo puede señalar cosas que la persona dijo, y el código lo comprueba.** Nada de prosa libre sobre la persona.
+**The model may only point at things the person said, and code checks it.** No free prose about the person.
 
 ```
-transcripción ─► 1 puerta ─► 2 extraer (solo lo explícito) ─► 3 verificar ─► ¿hay algo? ─► 4 buscar pasado ─► 5 conectar ─► verificar
-                  │                                                              │ no
-                  └ nota corta: se guarda tal cual                               └ no se muestra nada, no se inventa nada
+transcript ─► 1 gate ─► 2 extract (explicit things only) ─► 3 verify ─► anything? ─► 4 find the past ─► 5 connect ─► verify
+                │                                                         │ no
+                └ short note: saved as is                                 └ nothing is shown, nothing is invented
 ```
 
-1. **Puerta** (código). Menos de 10 s o menos de 12 palabras = *nota*: se transcribe y se guarda, **no se resume** ni se analiza.
-2. **Extraer** (1 llamada al modelo). Solo puede devolver cosas que la persona *dice explícitamente*: un compromiso, una emoción sobre algo
-   concreto, un hecho, un problema, un logro, una decisión. Cada una con una **cita literal**. Charla y descripción neutra no cuentan.
-3. **Verificar** (código, no el modelo). Toda cita tiene que aparecer en la transcripción como una tirada de palabras seguidas; el punto
-   resumido no puede traer palabras que la transcripción no sustente (y tiene que estar en el mismo idioma); toda etiqueta tiene que aparecer
-   en el texto. Lo que no pasa se descarta. Las "misiones" salen solo de compromisos verificados.
-   Si no queda nada → **no se muestra nada** ("Nothing explicit to highlight in this one").
-4. **Buscar pasado** (código). Solo las entradas que comparten una persona, un proyecto o un evento, o varias palabras significativas.
-   Sin candidatas, no hay ecos. El modelo **nunca** ve todo el historial, solo hasta 6 candidatas.
-5. **Conectar** (1 llamada). Un enlace necesita una **cita literal de las dos entradas** (verificada por código) y una relación:
-   *repeats / follows_up / progress / contradicts*. No hay texto en medio: la pantalla muestra lo que dijiste entonces y lo que dices hoy.
-   Puede añadir **una pregunta**, que tiene que citar tus palabras entre « » y acabar en «?» (verificado). La filosofía de la app
-   (vivir de verdad frente a solo existir) se usa **solo como criterio para elegir de qué palabras tuyas preguntar**, nunca como afirmación.
+1. **Gate** (code). Fewer than 8 words = *note*: it is transcribed and saved, **not summarised** or analysed.
+2. **Extract** (1 model call). It may only return things the person *says explicitly*: a commitment, a feeling about something specific,
+   an event, a problem, an achievement, a decision. Each with a **verbatim quote**. Small talk and neutral description don't count.
+   Points are written in the first person, as the speaker.
+3. **Verify** (code, not the model). Every quote must appear in the transcript as a run of consecutive words; the restated point
+   may not bring in words the transcript doesn't support (and must be in the same language); every tag must appear in the text.
+   Whatever fails is dropped. "Missions" come only from verified commitments.
+   If nothing is left → **nothing is shown** ("Nothing explicit to highlight in this one").
+4. **Find the past** (code). Only entries that share a person, a project or an event, or several significant words (and, optionally, meaning
+   via embeddings). With no candidates there are no echoes. The model **never** sees the whole history, only up to 6 candidates.
+5. **Connect** (1 call). A link needs a **verbatim quote from both entries** (checked by code) and a relation:
+   *repeats / follows_up / progress / contradicts*. There is no prose in between: the screen shows what you said then and what you say today.
+   It may add **one question**, which must quote your words between « » and end in "?" (checked). The app's philosophy
+   (living for real versus merely existing) is used **only as a criterion to choose which of your words to ask about**, never as a claim.
 
-El resumen abstracto desaparece: lo que ves son los puntos extraídos, cada uno respaldado por una cita.
+The abstract summary is gone: what you see are the extracted points, each backed by a quote.
 
-## Resultados (modelo real, `gpt-4o-mini`, historial de demo de 18 entradas)
+## Results (real model, `gpt-4o-mini`, demo history of 18 entries)
 
-| Caso | Resultado |
+| Case | Result |
 |---|---|
-| Nota de 6 s | No se llama al modelo. Se guarda tal cual. |
-| Charla sin nada relevante | 1 llamada, **0 puntos, 0 ecos**. No se añade nada. |
-| Explícito (Jordi, borrador, miedo, promesa) | 2 puntos con cita, 2 enlaces con citas de las dos entradas (8 sep y 2 sep), 1 pregunta que cita «no le guste». |
-| Tema nuevo (pan con Carmen) | 3 puntos, **0 ecos** (no hay pasado que conecte). |
-| Ambiguo ("me he sentido raro") | Solo lo explícito; **ningún eco inventado**. |
+| 6 s note | The model isn't called. Saved as is. |
+| Small talk with nothing relevant | 1 call, **0 points, 0 echoes**. Nothing is added. |
+| Explicit (Jordi, draft, fear, promise) | 2 points with quotes, 2 links with quotes from both entries (Sep 8 and Sep 2), 1 question quoting «doesn't like it». |
+| New topic (bread with Carmen) | 3 points, **0 echoes** (no past to connect). |
+| Ambiguous ("I felt weird") | Only what is explicit; **no invented echo**. |
 
-Pruebas repetidas: mismos resultados en 4 de 4 ejecuciones tras fijar la temperatura en 0,1. Cada enlace y cada cita se vuelve a comprobar
-fuera del pipeline: 0 citas sin respaldo. Coste: 1 llamada por entrada corta, 2 por entrada con contenido; 0 para notas.
+Repeated runs: same results in 4 of 4 runs after fixing the temperature at 0.1. Every link and every quote is re-checked outside the
+pipeline: 0 unsupported quotes. Cost: 1 call for a short entry, 2 for an entry with content; 0 for notes.
 
-Código: `pipeline.js` (sin dependencias; funciona en el navegador y en Node). Se conecta en `analyzeEntry` de `index.html`.
+Code: `pipeline.js` (no dependencies; works in the browser and in Node).
 
-## Datos antiguos, demo y personas nuevas
+## Old data, the demo and new people
 
-Para ti, en la demo, ya habrá historial real y los ecos serán reales. **Para cualquier otra persona** hay tres opciones:
+For you, in the demo, there will already be a real history and the echoes will be real. **For anyone else** there are three options:
 
-- ❌ *Que el modelo "autocomplete" un pasado inventado.* Es exactamente el problema de arriba, pero disfrazado de dato real. Descartada.
-- ✅ **Mundo de ejemplo, etiquetado.** Un historial ficticio y claramente marcado ("Ejemplo: Mara, 3 meses"), de solo lectura, que se puede
-  explorar (red, timeline, ecos reales entre esas entradas). Lo de la persona nueva nunca se mezcla con él.
-- ✅ **Onboarding que da valor desde la primera grabación**, sin inventar nada:
-  1. *Primera entrada guiada* (30-60 s): "Cuéntame algo de tu día".
-  2. *Valor inmediato con solo esa entrada*: los puntos con su cita, las etiquetas y el primer nodo de su red. Si no dijo nada explícito, la app
-     lo dice con honestidad y le pide un poco más.
-  3. *"Así se verá en un mes"*: un interruptor para ver el mundo de ejemplo al lado. Ve la utilidad sin que se invente nada sobre él.
-  4. *El primer eco aparece en la segunda grabación*; se le explica: "tu red crece cuando hablas".
+- ❌ *Let the model "autocomplete" an invented past.* It is exactly the problem above, disguised as real data. Rejected.
+- ✅ **A labelled example world.** A fictional, clearly marked history ("Example: Mara, 3 months"), read-only, that can be
+  explored (timeline, real echoes between those entries). A new person's entries are never mixed with it.
+- ✅ **Onboarding that gives value from the first recording**, inventing nothing:
+  1. *A guided first entry* (30-60 s): "Tell me something about your day".
+  2. *Immediate value from just that entry*: the points with their quotes, the tags. If nothing explicit was said, the app
+     says so honestly and asks for a little more.
+  3. *"This is how it will look in a month"*: a switch to see the example world next to it. They see the usefulness without anything being invented about them.
+  4. *The first echo appears on the second recording*, with the explanation: "your web grows when you speak".
 
-Recomendación: **mundo de ejemplo + onboarding guiado**. Resuelve el problema en vez de esquivarlo, y es honesto.
+Recommendation: **example world + guided onboarding**. It solves the problem instead of dodging it, and it is honest.
 
-## Decisiones pendientes
+## Open decisions
 
-1. **Datos de desconocidos.** Hoy todas las grabaciones van a una base de datos compartida y pública: un extraño que grabe aparece mezclado con
-   tu demo y lo ve cualquiera. Propuesta: *modo invitado* (todo local, sin sincronizar) para visitantes y *modo dueño* (sincronizado) solo para ti.
-2. **Umbrales.** 10 s / 12 palabras para la puerta, ¿bien? ¿Y la regla de importancia de la timeline?
-3. **Idioma.** El pipeline responde en el idioma de la entrada (probado en español). ¿Hace falta algo más (catalán)?
+1. **Strangers' data.** Today every recording goes to a shared public database: a stranger who records shows up mixed in with your demo and
+   anyone can see it. Proposal: *guest mode* (everything local, no sync) for visitors and *owner mode* (synced) only for you.
+2. **Thresholds.** 8 words for the gate. Fine?
+3. **Language.** The pipeline answers in the language of the entry (tested in Spanish). Is anything else needed (Catalan)?
 
 ## v3: five steps, card first
 The card is created and saved the moment you stop recording; each step then writes its result into the entry as soon as it has it
 (`proc.stage` says which one is running, and it is removed at the end). If the app is closed mid-way, it resumes on the next start.
 
-1. **Transcribe** (Whisper). 2. **Key points** (`extract`: verbatim quote + code check; under 10 s or 12 words it is kept as a note).
+1. **Transcribe** (Whisper). 2. **Key points** (`extract`: verbatim quote + code check; fewer than 8 words it is kept as a note).
 3. **Find patterns** (`candidates` + `propose`: the model only proposes links). 4. **Review** (`review`: code keeps a link only if both quotes exist).
-5. **Summary** (`summarize`: two sentences at most; if it adds anything the transcript doesn't support, the verified key points are used).
+5. **Summary** (`summarize`: two sentences at most, in the first person; if it adds anything the transcript doesn't support, the verified key points are used).
 
 The timeline shows every open memory immediately (a pill with the first words, or the running step, until key points exist); it has no filters and no sizes.
