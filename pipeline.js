@@ -71,14 +71,14 @@
 
   /* ---------- 2 + 3. extract and verify ---------- */
   const EXTRACT_SYSTEM = 'You read ONE voice-journal transcript. Extract ONLY what the speaker explicitly says. Do not interpret, do not infer causes, do not generalise, do not connect it to anything else, do not give advice. ' +
-    'Reply with ONLY JSON: {"items":[{"kind":"commitment|feeling|event|problem|win|decision","quote":"<EXACT consecutive words copied from the transcript, 4 to 25 words>","point":"<what they said, restated in at most 12 words, same language, adding no new information>"}],"tags":{"people":[],"projects":[],"work":[],"events":[]}}. ' +
+    'Reply with ONLY JSON: {"items":[{"kind":"commitment|feeling|event|problem|win|decision","quote":"<EXACT consecutive words copied from the transcript, 4 to 25 words>","point":"<what they said, restated in at most 12 words, in the FIRST PERSON as the speaker (I / yo, never he / she / they / the speaker), same language, adding no new information>"}],"tags":{"people":[],"projects":[],"work":[],"events":[]}}. ' +
     'An item exists only if the speaker explicitly states: an intention or promise (commitment), an emotion about something specific (feeling), something that happened (event), a problem, an achievement (win), or a decision. Small talk, filler and neutral description are NOT items. ' +
     'If nothing is explicitly relevant return {"items":[],"tags":{"people":[],"projects":[],"work":[],"events":[]}}. At most 5 items. ' +
     'Tags are names or terms that appear verbatim in the transcript: people = named people; projects = things they are building; work = job or study context; events = specific happenings. ';
 
   async function extract(text, llm){
     const lang = detectLang(text);
-    const j = parse(await llm(EXTRACT_SYSTEM + 'Write every "point" in ' + lang + ', the language of the transcript.', text, { json:true, max:700, temp:.1 }));
+    const j = parse(await llm(EXTRACT_SYSTEM + 'Write every "point" in ' + lang + ', the language of the transcript, always in the first person (as if I, the speaker, were writing it).', text, { json:true, max:700, temp:.1 }));
     const items = []; let dropped = 0;
     for(const it of (Array.isArray(j.items) ? j.items : [])){
       const quote = String(it.quote || '').trim(), point = String(it.point || '').trim();
@@ -167,7 +167,7 @@
 
   /* ---------- 5. summary ---------- */
   // At most two sentences, only what was said. If the model brings in anything the transcript doesn't support, we fall back to the verified key points.
-  const SUMMARY_SYSTEM = 'Summarise ONE voice-journal transcript in at most 2 short sentences, in the same language as the transcript. Use ONLY what the speaker explicitly says, as much as possible in their own words. ' +
+  const SUMMARY_SYSTEM = 'Summarise ONE voice-journal transcript in at most 2 short sentences, in the same language as the transcript. Use ONLY what the speaker explicitly says, as much as possible in their own words. Write it in the FIRST PERSON, as if the speaker were writing it about themselves (I / yo; never he / she / they / the speaker). ' +
     'Do not interpret, infer causes, generalise, add advice, or mention anything that was not said. Reply with ONLY JSON: {"summary":"..."}.';
   async function summarize(entry, points, llm){
     if(gate(entry).mode === 'note') return { text:'', source:'none' };

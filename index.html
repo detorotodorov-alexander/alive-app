@@ -2250,29 +2250,35 @@ async function syncNow(){
     // was deleted. Never let that wipe what's on this device.
     if(!Object.keys(remote).length && known.size && entries.length) throw new Error('the database returned nothing, so this device kept its entries');
     const pushed = store.get('pushed', {});                 // id -> version last uploaded (e.u): entries keep changing after recording
+    const shas = store.get('shas', {});                     // id -> remote version last seen, so a change made elsewhere (another device, the repo) reaches this one
     const localIds = new Set(entries.map(e => String(e.id)));
     let changed = false;
 
     for(const e of [...entries]){
       const id = String(e.id);
       if(id in remote){                                                                    // already online: push it again if it changed here
-        if(canWrite && (e.u || 0) > (pushed[id] || 0)){ remote[id] = await Backend.write(id, await seal(e), remote[id]); pushed[id] = e.u; }
+        if(canWrite && (e.u || 0) > (pushed[id] || 0)){ remote[id] = await Backend.write(id, await seal(e), remote[id]); pushed[id] = e.u; shas[id] = remote[id]; }
+        else if(remote[id] !== shas[id] && !e.proc && !procRunning.has(e.id)){                  // changed online and untouched here: take the online version
+          try{ const fresh = await unseal(await Backend.read(id)); entries[entries.indexOf(e)] = fresh; pushed[id] = fresh.u || 0; changed = true; }
+          catch(err){ console.warn('could not refresh entry ' + id, err); }
+          shas[id] = remote[id];
+        }
         continue;
       }
       if(known.has(id)){ entries = entries.filter(x => x !== e); changed = true; continue; }   // deleted on another device
       if(!canWrite) continue;                                                              // read-only: stays on this device
       if(e.audio){ const b = await AudioStore.getLocal(e.id); if(b) await Backend.putAudio(e.id, b); }   // recording first, so nobody sees an entry without its audio
-      remote[id] = await Backend.write(id, await seal(e)); pushed[id] = e.u || 0;
+      remote[id] = await Backend.write(id, await seal(e)); pushed[id] = e.u || 0; shas[id] = remote[id];
     }
     for(const id of Object.keys(remote)){
       if(localIds.has(id)) continue;
       if(known.has(id)){ if(canWrite){ await Backend.remove(id, remote[id]); delete remote[id]; } continue; }   // deleted here
-      try{ entries.push(await unseal(await Backend.read(id))); changed = true; }                                // new elsewhere: pull
+      try{ entries.push(await unseal(await Backend.read(id))); shas[id] = remote[id]; changed = true; }          // new elsewhere: pull
       catch(err){ console.warn('could not read entry ' + id, err); delete remote[id]; }                         // one bad file doesn't stop the rest
     }
     entries.sort((a, b) => b.ts - a.ts);
     store.set('entries', entries, true);                    // persist without re-triggering sync
-    store.set('remote', Object.keys(remote)); store.set('pushed', pushed);
+    store.set('remote', Object.keys(remote)); store.set('pushed', pushed); store.set('shas', shas);
     if(changed) renderEntries();
     setSync('Synced with ' + Backend.label() + ' · ' + new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
   }catch(err){
