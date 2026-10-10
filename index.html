@@ -1670,6 +1670,9 @@ async function syncNow(){
     const canWrite = Backend.canWrite();                    // without a GitHub token this device only reads
     const remote = await Backend.list();                    // id -> sha
     const known = new Set(store.get('remote', []));
+    // An empty list while this device remembers entries usually means the server or database is misconfigured, not that everything
+    // was deleted. Never let that wipe what's on this device.
+    if(!Object.keys(remote).length && known.size && entries.length) throw new Error('the database returned nothing, so this device kept its entries');
     const pushed = store.get('pushed', {});                 // id -> version last uploaded (e.u): entries keep changing after recording
     const localIds = new Set(entries.map(e => String(e.id)));
     let changed = false;
