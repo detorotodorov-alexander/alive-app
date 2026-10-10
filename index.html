@@ -238,6 +238,27 @@
   .pill .plus{flex:none;width:9.4cqw;height:9.4cqw;border-radius:50%;background:#f6efe0;color:#1a0f04;display:grid;place-items:center;font-size:5.4cqw;line-height:1}
   .pill.on .plus{background:#ffb27a}
 
+  /* ===== Memories gallery: phone-style tiles, text inside each tile, the picture as its background ===== */
+  .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6cqw}
+  .tmonth{grid-column:1 / -1;margin:3cqw 1cqw 1cqw;font:italic 4.4cqw "Lora",Georgia,serif;color:var(--calm)}
+  .tmonth:first-child{margin-top:0}
+  .tile{position:relative;isolation:isolate;overflow:hidden;cursor:pointer;border:0;text-align:left;color:#fff;aspect-ratio:3 / 4;
+    padding:2.4cqw;border-radius:5cqw;corner-shape:superellipse(2.8);display:flex;flex-direction:column;justify-content:space-between;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--c1:#1fd08a;--c2:#07744f;--blob:#012a1f}
+  .tile::before{content:"";position:absolute;inset:0;z-index:-2;
+    background:radial-gradient(ellipse 80% 60% at 30% 85%,var(--blob) 0%,transparent 100%),linear-gradient(165deg,var(--c1),var(--c2))}
+  .tile.wide{grid-column:span 2;aspect-ratio:auto}
+  .tile .timg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+  .tile.hasimg::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to bottom,rgba(2,8,14,.55),rgba(2,8,14,.35) 40%,rgba(2,8,14,.8))}
+  .tile .td{font-size:2.3cqw;letter-spacing:.12em;text-transform:uppercase;font-weight:600;opacity:.9}
+  .tile .tx{font:3cqw/1.32 "Lora",Georgia,serif;display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden;margin:1.4cqw 0;text-shadow:0 1px 6px rgba(0,0,0,.35)}
+  .tile.wide .tx{-webkit-line-clamp:3;font-size:3.4cqw}
+  .tile .tm{font-size:2.5cqw;opacity:.88;display:flex;justify-content:space-between;gap:1cqw}
+  .tile.sage{--c1:#1fd08a;--c2:#07744f;--blob:#012a1f} .tile.rose{--c1:#3fa9ff;--c2:#0b55b8;--blob:#01204a} .tile.cobalt{--c1:#3563ff;--c2:#0f1f9c;--blob:#02030a}
+  .tile.ember{--c1:#ffb42e;--c2:#f0661c;--blob:#0d38c8} .tile.plum{--c1:#18c4bd;--c2:#07616d;--blob:#021a24}
+  .tile.sealed .tx{font-size:5cqw;text-align:center;align-self:center;margin:auto 0}
+  .tile:active{scale:.97}
+
   /* ===== Recording cards: soft gradient squircles with a dark glowing core, like the widget reference ===== */
   .egrid{display:grid;grid-template-columns:1fr 1fr;gap:3cqw}
   .wcard{position:relative;isolation:isolate;overflow:hidden;cursor:pointer;color:#fff;
@@ -354,10 +375,10 @@
      Colour = type of memory (same palette as the cards). Size = importance in three tiers (large, medium, small). ===== */
   #timeline{position:absolute;left:0;right:0;z-index:2;top:calc(env(safe-area-inset-top) + 59cqw);bottom:30cqw;
     display:flex;flex-direction:column;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  #tlLegend{flex:none;display:flex;justify-content:center;align-items:center;gap:1.6cqw;padding:0 4cqw 2.4cqw;flex-wrap:wrap}
-  #tlLegend button{display:flex;align-items:center;gap:1.4cqw;background:rgba(6,19,29,.6);border:1px solid var(--line);color:#dcecef;
-    border-radius:99px;padding:1.2cqw 2.8cqw;font-size:2.9cqw;letter-spacing:.04em;transition:opacity .2s}
-  #tlLegend button i{width:2.6cqw;height:2.6cqw;border-radius:50%;background:var(--c1)}
+  #tlLegend{flex:none;display:flex;justify-content:flex-start;align-items:center;gap:1.8cqw;padding:0 6cqw 3cqw;flex-wrap:wrap}
+  #tlLegend button{display:flex;align-items:center;gap:1.4cqw;background:linear-gradient(165deg,var(--c1),var(--c2));border:0;color:#fff;
+    border-radius:99px;padding:1.5cqw 3.2cqw;font-size:3cqw;letter-spacing:.04em;transition:opacity .2s;box-shadow:0 1cqw 3cqw rgba(0,0,0,.4)}
+  #tlLegend button i{width:2.2cqw;height:2.2cqw;border-radius:50%;background:#fff;opacity:.85}
   #tlLegend button.off{opacity:.38}
   #tlLegend .sizes{display:flex;align-items:center;gap:1cqw;margin-left:1cqw;color:var(--dim);font-size:2.7cqw}
   #tlLegend .sizes b{display:block;border-radius:50%;background:var(--dim)}
@@ -366,25 +387,27 @@
             mask-image:linear-gradient(to bottom,transparent 0,#000 7%,#000 90%,transparent 100%)}
   #tlScroll::-webkit-scrollbar{display:none}
   #tlList{position:relative;padding:3cqw 0 16cqw}
-  #tlList::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;
-    background:linear-gradient(to bottom,transparent,rgba(200,230,240,.3) 4%,rgba(200,230,240,.3) 96%,transparent)}
-  .tlmonth{position:relative;text-align:center;margin:1cqw 0 4cqw;font-size:2.7cqw;letter-spacing:.2em;text-transform:uppercase;color:var(--calm)}
+  #tlList::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:.5cqw;border-radius:9px;
+    background:linear-gradient(to bottom,transparent,rgba(255,191,71,.55) 5%,rgba(63,140,255,.4) 95%,transparent)}
+  .tlmonth{position:relative;text-align:center;margin:1cqw 0 4cqw;font:italic 4.4cqw "Lora",Georgia,serif;color:var(--calm)}
   .tlmonth span{background:#030a10;padding:0 3cqw}
   .tlrow{display:grid;grid-template-columns:1fr 7cqw 1fr;align-items:center;margin-bottom:4.6cqw}
   .tlmid{display:grid;place-items:center}
-  .tldot{width:3.4cqw;height:3.4cqw;border-radius:50%;background:var(--c1);box-shadow:0 0 0 1cqw rgba(255,255,255,.08),0 0 3cqw var(--c1)}
+  .tldot{width:4.2cqw;height:4.2cqw;border-radius:50%;background:linear-gradient(160deg,var(--c1),var(--c2));box-shadow:0 0 0 1cqw rgba(255,255,255,.12),0 0 4cqw var(--c1)}
   .tlside{display:flex;flex-direction:column;gap:1.8cqw;min-width:0}
   .tlside.l{align-items:flex-end}
   .tlside.r{align-items:flex-start}
   .tldate{font-size:2.9cqw;color:var(--dim);letter-spacing:.06em;padding:0 1cqw}
-  .kp{position:relative;border:0;color:#fff;text-align:left;font-family:inherit;line-height:1.25;
-    background:linear-gradient(160deg,var(--c1),var(--c2));max-width:100%}
-  .kp::after{content:"";position:absolute;top:50%;width:3.2cqw;height:1px;background:var(--c1)}
-  .tlside.l .kp::after{left:100%}
-  .tlside.r .kp::after{right:100%}
-  .kp.t1{font-size:4cqw;font-weight:500;padding:3cqw 3.6cqw;border-radius:5cqw}
-  .kp.t2{font-size:3.3cqw;padding:2.2cqw 3cqw;border-radius:4cqw}
-  .kp.t3{font-size:2.8cqw;opacity:.88;padding:1.5cqw 2.4cqw;border-radius:3cqw}
+  .kp{position:relative;border:0;color:#fff;text-align:left;font-family:inherit;line-height:1.25;isolation:isolate;overflow:hidden;
+    corner-shape:superellipse(2.8);max-width:100%;box-shadow:0 1.6cqw 5cqw rgba(0,0,0,.45);--blob:#02070a}
+  .kp::before{content:"";position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(ellipse 70% 60% at 30% 80%,var(--blob) 0%,transparent 100%),linear-gradient(165deg,var(--c1),var(--c2))}
+  .tlside.l .kp{rotate:-1.2deg} .tlside.r .kp{rotate:1.2deg}
+  .kp:active{scale:.97}
+  .kp.t1{font-size:4.1cqw;font-weight:500;padding:4.2cqw 4.6cqw;border-radius:9cqw}
+  .kp.t2{font-size:3.4cqw;padding:3cqw 3.8cqw;border-radius:7cqw}
+  .kp.t3{font-size:2.9cqw;opacity:.92;padding:2cqw 3cqw;border-radius:5cqw}
+  .sage{--blob:#012a1f} .rose{--blob:#01204a} .cobalt{--blob:#02030a} .ember{--blob:#0d38c8} .plum{--blob:#021a24}
   .sage{--c1:#1fd08a;--c2:#07744f} .rose{--c1:#3fa9ff;--c2:#0b55b8} .cobalt{--c1:#3563ff;--c2:#0f1f9c}
   .ember{--c1:#ffb42e;--c2:#f0661c} .plum{--c1:#18c4bd;--c2:#07616d}
   .tlempty{color:var(--dim);text-align:center;font-style:italic;margin-top:12cqw;font-size:3.6cqw}
@@ -480,9 +503,9 @@
   /* Timeline page: a back button, the Web/Timeline switch and the Memories button */
   .pgbar{position:absolute;left:0;right:0;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
     padding:calc(env(safe-area-inset-top) + 4cqw) 5cqw 0}
-  .pgtitle{font-size:6cqw}
+  #tlPage h2.tlh{position:absolute;left:6cqw;top:calc(env(safe-area-inset-top) + 19cqw);z-index:4;margin:0;font-size:11cqw;line-height:1.05}
   .pgacts{display:flex;gap:2cqw}
-  #tlPage #timeline{top:calc(env(safe-area-inset-top) + 22cqw);bottom:6cqw}
+  #tlPage #timeline{top:calc(env(safe-area-inset-top) + 38cqw);bottom:4cqw}
 
   /* Recording page */
   #recPage{display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(env(safe-area-inset-top) + 8cqw) 6cqw calc(env(safe-area-inset-bottom) + 8cqw)}
@@ -564,15 +587,15 @@
       </label>
     </section>
 
-    <!-- TIMELINE PAGE: the memory web or the timeline, a switch between them, and the Memories (cards) button -->
+    <!-- TIMELINE PAGE: a back button, the Memories (gallery) button, a title and the timeline -->
     <section class="pg" id="tlPage" aria-label="Timeline">
     <header class="pgbar">
       <button class="icon-btn" id="tlBack" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <div class="pgtitle" id="tlTitle">Timeline</div>
       <div class="pgacts">
         <button class="icon-btn" id="cardsBtn" aria-label="Open memories"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="4" width="7.5" height="7.5" rx="2.2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2.2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2.2"/></svg><b class="cnt" id="cardsCount" hidden></b></button>
       </div>
     </header>
+    <h2 class="tlh" id="tlTitle">Timeline</h2>
 
     <div id="timeline" aria-label="Timeline">
       <div id="tlLegend"></div>
@@ -1171,6 +1194,18 @@ function cardEl(e){
   c.onclick = () => { if(sealed) toast('Sealed until ' + fmtDay(e.capsule)); else openReader(e.id); };
   return c;
 }
+function tileEl(e){
+  const wide = (e.dur || 0) >= WIDE_SECS, sealed = !isOpen(e), d = new Date(e.ts);
+  const t = el('button', 'tile ' + (sealed ? 'plum' : toneOf(e)) + (wide ? ' wide' : '') + (sealed ? ' sealed' : '')); t.dataset.id = e.id;
+  if(!sealed && e.images && e.images[0]){ const im = el('img', 'timg'); im.src = e.images[0]; im.alt = ''; t.append(im); t.classList.add('hasimg'); }
+  t.append(el('div', 'td', d.toLocaleDateString([], { day:'numeric', month:'short' })));
+  t.append(el('div', 'tx', sealed ? '⏳' : e.text ? excerpt(e.text, wide ? 160 : 190) : 'Not transcribed yet'));
+  const m = el('div', 'tm'); m.append(el('span', null, sealed ? 'until ' + new Date(e.capsule).toLocaleDateString([], { day:'numeric', month:'short', year:'numeric' }) : e.dur ? fmtClock(e.dur) : ''),
+    el('span', null, d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })));
+  t.append(m);
+  t.onclick = () => { if(sealed) toast('Sealed until ' + fmtDay(e.capsule)); else openReader(e.id); };
+  return t;
+}
 function renderEntries(){
   buildWeb(); buildTimeline(); renderHome();                       // the web, the timeline and the home cards: keep them current
   const cnt = $('cardsCount'); cnt.hidden = !entries.length; cnt.textContent = entries.length;
@@ -1180,7 +1215,13 @@ function renderEntries(){
   }
   const list = entries.filter(e => !filterTag || (isOpen(e) && ((e.tags && Object.values(e.tags).some(v => v.includes(filterTag))) || (e.text || '').toLowerCase().includes(filterTag.toLowerCase()))));
   if(!list.length){ box.append(el('div','empty', filterTag ? 'Nothing with that tag.' : 'Nothing here yet.\nRecord your first thought.')); return; }
-  const grid = el('div', 'egrid'); for(const e of list) grid.append(cardEl(e)); box.append(grid);
+  const grid = el('div', 'tgrid'); let month = '';
+  for(const e of list){
+    const m = new Date(e.ts).toLocaleDateString([], { month:'long', year:'numeric' });
+    if(m !== month){ month = m; grid.append(el('div', 'tmonth', m)); }
+    grid.append(tileEl(e));
+  }
+  box.append(grid);
   paintPlayer();
 }
 
