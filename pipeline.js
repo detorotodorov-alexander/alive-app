@@ -23,7 +23,7 @@
   else root.Pipeline = factory();
 })(typeof self !== 'undefined' ? self : this, function(){
 
-  const MIN_SECONDS = 0, MIN_WORDS = 8;                              // a short recording with something said still counts; only a few words are kept as a plain note
+  const MIN_SECONDS = 0, MIN_WORDS = 1;                              // no threshold: anything with a word in it goes through the pipeline, and the pipeline's own checks keep it coherent
   const KINDS = ['commitment', 'feeling', 'event', 'problem', 'win', 'decision'];
   const RELATIONS = ['repeats', 'follows_up', 'progress', 'contradicts'];
   const EMPTY_TAGS = () => ({ people:[], projects:[], work:[], events:[], missions:[] });

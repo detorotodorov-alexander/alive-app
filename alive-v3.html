@@ -353,6 +353,8 @@
   #readPts .pts{color:#e0eff1}
   .rtags{margin-top:1cqw}
   .rbtns{margin-top:5cqw}
+  .pwait{display:flex;align-items:center;gap:2.6cqw;color:var(--calm);font:italic 3.8cqw "Lora",Georgia,serif;margin:1cqw 0 3cqw}
+  .spin2{flex:none;width:4cqw;height:4cqw;border-radius:50%;border:.6cqw solid rgba(255,255,255,.25);border-top-color:#fff;animation:spin .9s linear infinite}
   .rproc{margin:3cqw 0 1cqw;padding:3cqw 4cqw;border-radius:5cqw;background:rgba(6,19,29,.5);border:1px solid var(--line);font:3.3cqw system-ui,sans-serif}
   .pstep{display:flex;align-items:center;gap:2.4cqw;padding:.9cqw 0;color:var(--dim)}
   .pstep i{flex:none;width:3.4cqw;height:3.4cqw;border-radius:50%;border:.5cqw solid currentColor}
@@ -1286,6 +1288,21 @@ function shrinkImage(file, max = 640, q = .62){
     im.src = url;
   });
 }
+/* The reader never shows a blank section: either the pipeline is on it (with a spinner), or it says why there is nothing. */
+function waitOrWhy(e, what){
+  const working = e.proc || needsWork(e) || (e.text && !e.analysis);
+  if(working){
+    const at = e.proc ? STAGES.indexOf(e.proc.stage) : -1, mine = STAGES.indexOf(what), d = el('div', 'pwait');
+    const txt = !e.text ? 'Waiting for the transcript…' : at === mine ? (what === 'bullets' ? 'Finding the key points…' : 'Writing the summary…') : at > mine ? 'Almost there…' : 'Queued: step ' + (mine + 1) + ' of 5 (' + STAGE_LABEL[what] + ').';
+    d.append(el('i', 'spin2'), el('span', null, e.proc ? txt : 'Starting…')); return d;
+  }
+  const an = e.analysis;
+  if(!e.text) return el('p', 'dimp', 'Nothing to read yet: this recording has no transcript.');
+  if(an && an.mode === 'note') return el('p', 'dimp', 'No text to work with.');
+  if(an && an.mode === 'full' && !an.relevant) return el('p', 'dimp', 'Nothing explicit to ' + (what === 'bullets' ? 'highlight' : 'summarise') + ' in this one. Nothing was added.');
+  if(what === 'summary' && e.summarySource === 'none') return el('p', 'dimp', 'No summary this time: nothing was said that I could summarise without adding to it.');
+  return el('p', 'dimp', KEY.text() ? 'Not available yet.' : 'Needs the text key (see config.js).');
+}
 function paintProc(e){                                              // the five steps, with the one that is running
   const box = $('readProc'); box.hidden = !e.proc; box.replaceChildren(); if(!e.proc) return;
   const at = STAGES.indexOf(e.proc.stage);
@@ -1318,7 +1335,8 @@ function renderReader(){
   $('readTicks').replaceChildren(ticksEl(e, 'big'));
   paintImages(e); paintProc(e);
   const sm = $('readSummary'); sm.replaceChildren();
-  if(e.summary){ sm.append(el('h3', 'hub-h', 'Summary'), el('p', 'echo', e.summary)); }
+  sm.append(el('h3', 'hub-h', 'Summary'));
+  if(e.summary) sm.append(el('p', 'echo', e.summary)); else sm.append(waitOrWhy(e, 'summary'));
   const box = $('readText'); box.replaceChildren(); readWords = []; readIdx = -1;
   box.classList.toggle('plain', !e.audio);
   if(!e.text) box.append(el('p', 'dimp', e.proc ? 'Transcribing…' : e.audio ? 'This recording hasn\'t been transcribed yet.' : 'No text.'));
@@ -1341,7 +1359,9 @@ function renderReader(){
     if(e.echo.question){ echo.append(el('h3', 'hub-h', 'A question'), el('p', 'echo', e.echo.question)); }
   }else if(e.text && KEY.text() && an && an.relevant && entries.length > 1){ echo.append(el('h3', 'hub-h', 'Echoes from your past'), el('p', 'dimp', 'Looking for what connects…')); }
   const pts = $('readPts'); pts.replaceChildren();
-  if(e.points && e.points.length){ pts.append(el('h3', 'hub-h', 'Key points')); const ul = el('ul', 'pts'); e.points.forEach(p => ul.append(el('li', null, p))); pts.append(ul); }
+  pts.append(el('h3', 'hub-h', 'Key points'));
+  if(e.points && e.points.length){ const ul = el('ul', 'pts'); e.points.forEach(p => ul.append(el('li', null, p))); pts.append(ul); }
+  else pts.append(waitOrWhy(e, 'bullets'));
   if(e.tags){
     const tg = el('div', 'rtags');
     for(const [kind, names] of Object.entries(e.tags)) for(const n of names){
@@ -1378,6 +1398,7 @@ function paintReader(p, playing){
 function openReader(id){
   readId = id; renderReader();
   phoneEl.classList.add('sheeted'); readerEl.classList.add('on'); paintPlayer();
+  if(needsWork(entryById(id))) processEntry(id);                    // whatever is missing starts now, and the reader shows it working
 }
 $('readPlay').onclick = () => togglePlay(readId);
 $('readTicks').addEventListener('click', ev => {
@@ -1452,7 +1473,7 @@ function touch(en, patch){                                          // save a st
 }
 const enter = (en, stage) => touch(en, { proc:{ t0:(en.proc && en.proc.t0) || Date.now(), t:Date.now(), stage } });
 const finish = en => { delete en.proc; touch(en, {}); };
-async function processEntry(id, blob){
+async function processEntry(id, blob, force){
   if(!entryById(id) || procRunning.has(id)) return;
   procRunning.add(id);
   const live = () => entryById(id);                                 // may have been deleted or replaced by a sync meanwhile
@@ -1472,7 +1493,8 @@ async function processEntry(id, blob){
     // 2. key points (and tags): only what was said, each with a verbatim quote that code checks
     stage = 'bullets'; enter(e, 'bullets');
     let patch = null; const g = Pipeline.gate(e);
-    if(g.mode === 'note') patch = { analysis:{ v:2, mode:'note', reason:g.reason }, points:[], evidence:[], tags:EMPTY_TAGS() };
+    if(e.analysis && !force && !(e.analysis.local && haveKey)) patch = {};   // done before: keep it
+    else if(g.mode === 'note') patch = { analysis:{ v:2, mode:'note', reason:g.reason }, points:[], evidence:[], tags:EMPTY_TAGS() };
     else if(haveKey){
       try{ const x = await Pipeline.extract(e.text, llm);
         patch = { analysis:{ v:2, mode:'full', relevant:x.items.length > 0, dropped:x.dropped }, points:x.items.map(i => i.point), evidence:x.items.map(({ kind, quote }) => ({ kind, quote })), tags:x.tags }; }
@@ -1483,7 +1505,7 @@ async function processEntry(id, blob){
     const an = e.analysis;
 
     // 3 + 4. patterns: the model proposes links to your past, then code checks every quote
-    if(haveKey && an.mode === 'full' && an.relevant && !an.local){
+    if(haveKey && an.mode === 'full' && an.relevant && !an.local && (force || !(e.echo && e.echo.checked))){
       stage = 'patterns'; enter(e, 'patterns');
       let vecs = null; try{ vecs = await ensureEmbeddings([e, ...past]); }catch(err){ console.warn('no embeddings, using words only', err); }
       const cands = Pipeline.candidates(e, past, 6, vecs);
@@ -1497,10 +1519,10 @@ async function processEntry(id, blob){
     }
 
     // 5. summary: two sentences at most, built from what was said; if the model adds anything, the verified key points are used instead
-    if(haveKey && an.mode === 'full' && an.relevant){
+    if(haveKey && an.mode === 'full' && an.relevant && !an.local && (force || !e.summarySource)){
       stage = 'summary'; enter(e, 'summary');
       const sm = await Pipeline.summarize(e, e.points, llm); e = live(); if(!e) return;
-      if(sm.text) touch(e, { summary:sm.text, summarySource:sm.source });
+      touch(e, sm.text ? { summary:sm.text, summarySource:sm.source } : { summarySource:'none' });          // 'none' = tried; don't try again on every open
     }
     e = live(); if(e) finish(e);
   }catch(err){
@@ -1508,7 +1530,15 @@ async function processEntry(id, blob){
     const cur = live(); if(cur) finish(cur);
   }finally{ procRunning.delete(id); renderHome(); }
 }
-const analyzeEntry = id => processEntry(id);                         // "Find key points", capsules that open, a finished transcription
+const analyzeEntry = id => processEntry(id, null, true);                         // "Find key points", capsules that open, a finished transcription
+/* Does this entry still owe the user key points, patterns or a summary? Opening it starts whatever is missing, so a card is never left blank. */
+function needsWork(en){
+  if(!en || !en.text || !isOpen(en) || procRunning.has(en.id)) return false;
+  if(en.proc) return Date.now() - (en.proc.t || 0) > 20000;           // marked as running but nobody is running it (closed app, another device)
+  const an = en.analysis; if(!an) return true;
+  if(!KEY.text()) return false;
+  return an.local || (an.mode === 'full' && an.relevant && (!(en.echo && en.echo.checked) || !en.summarySource));
+}
 async function resumeProcessing(){                                  // the app was closed mid-way: pick up where the entry says it stopped
   for(const en of [...entries]) if(en.proc && !procRunning.has(en.id) && Date.now() - (en.proc.t || 0) > 90000) await processEntry(en.id);
 }
