@@ -105,7 +105,11 @@
   }
 
   /* ---------- 4. retrieve ---------- */
-  function candidates(entry, past, limit = 6){
+  // Optional vecs: { [entryId]: [numbers] } from an embedding model. Meaning counts as one more signal next to shared people/projects/words,
+  // so a past entry that says the same thing in other words can still be found. It only decides WHICH entries the model gets to look at;
+  // a link still needs a verbatim quote from both sides, so semantic search can't introduce anything that wasn't said.
+  const cosine = (a, b) => { let d = 0, x = 0, y = 0; for(let i = 0; i < a.length; i++){ d += a[i] * b[i]; x += a[i] * a[i]; y += b[i] * b[i]; } return x && y ? d / Math.sqrt(x * y) : 0; };
+  function candidates(entry, past, limit = 6, vecs = null){
     const tags = entry.tags || {}, mine = new Set(['people', 'projects', 'events'].flatMap(k => (tags[k] || []).map(norm)));
     const words = sigSet((entry.evidence || []).map(e => e.quote).join(' ') || entry.text);
     const scored = [];
@@ -116,6 +120,7 @@
       const theirs = sigSet(p.text); let shared = 0;
       for(const w of words) if(theirs.has(w)) shared++;
       score += Math.min(shared, 5);
+      if(vecs && vecs[entry.id] && vecs[p.id]){ const s = cosine(vecs[entry.id], vecs[p.id]); if(s >= .3) score += Math.round(s * 10); }
       if(score >= 3) scored.push({ p, score });
     }
     return scored.sort((a, b) => b.score - a.score || b.p.ts - a.p.ts).slice(0, limit).map(s => s.p);
@@ -150,13 +155,13 @@
   }
 
   /* ---------- whole pipeline ---------- */
-  async function run(entry, past, llm){
+  async function run(entry, past, llm, vecs){
     const patch = await analyze(entry, llm);
     if(patch.analysis.mode !== 'full' || !patch.analysis.relevant) return patch;     // nothing explicit: say nothing
     const merged = { ...entry, tags:patch.tags, evidence:patch.evidence };
-    patch.echo = await connect(entry, candidates(merged, past), llm);
+    patch.echo = await connect(entry, candidates(merged, past, 6, vecs), llm);
     return patch;
   }
 
-  return { run, analyze, extract, candidates, connect, gate, grounded, supported, norm, MIN_SECONDS, MIN_WORDS, RELATIONS };
+  return { run, analyze, extract, candidates, connect, gate, grounded, supported, norm, cosine, MIN_SECONDS, MIN_WORDS, RELATIONS };
 });

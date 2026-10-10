@@ -1159,11 +1159,37 @@ function localEntry(text){
   }
   return { points:sents.slice(0, 3).map(s => s.length > 110 ? s.slice(0, 107) + '…' : s), tags };
 }
+/* ---- Embeddings: a vector per entry that captures what it MEANS (OpenAI text-embedding-3-small, 256 numbers) ----
+   Not an LLM: it returns numbers, not words, so it can't invent anything. Used to find past entries that say the same thing in other
+   words. They are derived data: kept on this device only (never synced), and recomputed whenever missing. */
+async function embedTexts(texts){
+  const r = await fetch(API ? API + '/embed' : 'https://api.openai.com/v1/embeddings', {
+    method:'POST', headers:API ? { 'content-type':'application/json' } : { 'content-type':'application/json', Authorization:'Bearer ' + KEY.text() },
+    body:JSON.stringify(API ? { inputs:texts } : { model:'text-embedding-3-small', input:texts, dimensions:256 }) });
+  if(!r.ok) throw new Error('embeddings ' + r.status);
+  const j = await r.json();
+  return API ? j.vectors : j.data.map(d => d.embedding);
+}
+async function ensureEmbeddings(list){
+  const vecs = store.get('embs', {});
+  const missing = list.filter(e => e.text && !vecs[e.id]).slice(0, 100);
+  if(missing.length){
+    const out = await embedTexts(missing.map(e => e.text));
+    missing.forEach((e, i) => { vecs[e.id] = out[i]; });
+    store.set('embs', vecs);
+  }
+  return vecs;
+}
+
 async function analyzeEntry(id){
   const e = entryById(id); if(!e || !isOpen(e) || !e.text) return;
   let patch = null;
   if(KEY.text()){
-    try{ patch = await Pipeline.run(e, entries.filter(x => x.id !== id && isOpen(x) && x.text), llm); }
+    try{
+      const past = entries.filter(x => x.id !== id && isOpen(x) && x.text);
+      let vecs = null; try{ vecs = await ensureEmbeddings([e, ...past]); }catch(err){ console.warn('no embeddings, using words only', err); }   // optional: the pipeline works without
+      patch = await Pipeline.run(e, past, llm, vecs);
+    }
     catch(err){ console.warn('analysis failed', err); toast('AI failed, using local analysis'); }
   }
   if(!patch){                                                       // no key or the call failed: same shape, built only from their own sentences
