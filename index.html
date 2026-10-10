@@ -1318,7 +1318,11 @@ const scroller = $('scroller'), heroEl = $('hero'), spacerEl = $('spacer'), entr
 // it must be zero, otherwise you could scroll the cards further DOWN than rest, off the bottom of the screen, and blur the title.
 const blocksShown = () => { const b = document.querySelector('.blk'); return !!b && getComputedStyle(b).display !== 'none'; };
 const fitSpacer = () => { spacerEl.style.height = (heroEl.offsetHeight && blocksShown()) ? (heroEl.offsetTop + heroEl.offsetHeight + phoneEl.clientWidth * .05) + 'px' : '0px'; };
-const restTop = () => Math.max(0, entriesEl.offsetTop + entriesEl.offsetHeight - scroller.clientHeight);
+// At rest the stack sits on the bottom edge; a stack taller than half the screen starts at the middle instead (older cards below the
+// fold), so the title and the web stay visible until you scroll the cards up over them.
+const STACK_TOP = .55;
+const restTop = () => Math.max(0, Math.min(entriesEl.offsetTop + entriesEl.offsetHeight - scroller.clientHeight,
+                                           entriesEl.offsetTop - scroller.clientHeight * STACK_TOP));
 let rest = 0, laidOut = false, touched = false;
 ['wheel', 'touchstart', 'pointerdown'].forEach(ev => scroller.addEventListener(ev, () => { touched = true; }, { passive:true }));
 // With the gear hidden, press and hold the title to open settings.
@@ -1346,7 +1350,7 @@ function layout(){
   fitSpacer();
   // empty room above the cards, as tall as the screen minus the stack: at rest only the title shows there,
   // and the web, patterns and capsule switch wait just off the top edge until you scroll up
-  $('gap').style.height = Math.max(0, scroller.clientHeight - entriesEl.offsetHeight) + 'px';
+  $('gap').style.height = Math.max(scroller.clientHeight * STACK_TOP, scroller.clientHeight - entriesEl.offsetHeight) + 'px';
   const wasAtRest = !laidOut || !touched || Math.abs(scroller.scrollTop - rest) < 24;   // keep resting until you move it; never yank you elsewhere
   rest = restTop();
   if(wasAtRest) scroller.scrollTop = rest;
