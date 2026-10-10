@@ -678,10 +678,10 @@
       <div id="readTicks"></div>
       <div class="rctl"><button class="wplay" id="readPlay" aria-label="Play">▶</button><span id="readTime">0:00</span></div>
       <div id="readSummary"></div>
+      <div id="readPts"></div>
       <h3 class="hub-h">Transcript</h3>
       <div class="trans" id="readText"></div>
       <div id="readEcho"></div>
-      <div id="readPts"></div>
       <div class="rbtns"><button class="btn ghost" id="readAction"></button><button class="btn ghost" id="readDelete">Delete</button></div>
     </div>
   </section>
@@ -2257,18 +2257,20 @@ async function syncNow(){
     for(const e of [...entries]){
       const id = String(e.id);
       if(id in remote){                                                                    // already online: push it again if it changed here
-        if(canWrite && (e.u || 0) > (pushed[id] || 0)){ remote[id] = await Backend.write(id, await seal(e), remote[id]); pushed[id] = e.u; shas[id] = remote[id]; }
-        else if(remote[id] !== shas[id] && !e.proc && !procRunning.has(e.id)){                  // changed online and untouched here: take the online version
-          try{ const fresh = await unseal(await Backend.read(id)); entries[entries.indexOf(e)] = fresh; pushed[id] = fresh.u || 0; changed = true; }
+        if(canWrite && (e.u || 0) > (pushed[id] || 0)){
+          const ver = e.u, body = await seal(e);              // remember WHICH version went up: the entry may change while the upload is in flight
+          remote[id] = await Backend.write(id, body, remote[id]); pushed[id] = ver;
+        }else if(remote[id] !== shas[id] && !e.proc && !procRunning.has(e.id)){                 // the online copy changed: take it only if it is newer than ours
+          try{ const fresh = await unseal(await Backend.read(id)); if((fresh.u || 0) > (e.u || 0)){ entries[entries.indexOf(e)] = fresh; pushed[id] = fresh.u; changed = true; } }
           catch(err){ console.warn('could not refresh entry ' + id, err); }
-          shas[id] = remote[id];
         }
+        shas[id] = remote[id];
         continue;
       }
       if(known.has(id)){ entries = entries.filter(x => x !== e); changed = true; continue; }   // deleted on another device
       if(!canWrite) continue;                                                              // read-only: stays on this device
       if(e.audio){ const b = await AudioStore.getLocal(e.id); if(b) await Backend.putAudio(e.id, b); }   // recording first, so nobody sees an entry without its audio
-      remote[id] = await Backend.write(id, await seal(e)); pushed[id] = e.u || 0; shas[id] = remote[id];
+      { const ver = e.u || 0, body = await seal(e); remote[id] = await Backend.write(id, body); pushed[id] = ver; shas[id] = remote[id]; }
     }
     for(const id of Object.keys(remote)){
       if(localIds.has(id)) continue;
