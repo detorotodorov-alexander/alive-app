@@ -23,7 +23,7 @@
   else root.Pipeline = factory();
 })(typeof self !== 'undefined' ? self : this, function(){
 
-  const MIN_SECONDS = 10, MIN_WORDS = 12;
+  const MIN_SECONDS = 0, MIN_WORDS = 8;                              // a short recording with something said still counts; only a few words are kept as a plain note
   const KINDS = ['commitment', 'feeling', 'event', 'problem', 'win', 'decision'];
   const RELATIONS = ['repeats', 'follows_up', 'progress', 'contradicts'];
   const EMPTY_TAGS = () => ({ people:[], projects:[], work:[], events:[], missions:[] });
@@ -64,7 +64,6 @@
   /* ---------- 1. gate ---------- */
   function gate(entry){
     const text = entry.text || '';
-    if(entry.dur && entry.dur < MIN_SECONDS) return { mode:'note', reason:'shorter than ' + MIN_SECONDS + ' seconds' };
     if(wordCount(text) < MIN_WORDS) return { mode:'note', reason:'fewer than ' + MIN_WORDS + ' words' };
     return { mode:'full' };
   }

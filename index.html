@@ -1354,7 +1354,7 @@ function renderReader(){
   act.hidden = false;
   if(e.proc) act.hidden = true;
   else if(e.audio && !e.text){ act.textContent = 'Transcribe this recording'; act.onclick = () => transcribeEntry(e.id); }
-  else if(e.text && !e.points){ act.textContent = 'Find key points'; act.onclick = async () => { act.textContent = 'Reading…'; await analyzeEntry(e.id); renderReader(); }; }
+  else if(e.text && (!e.points || (e.analysis && e.analysis.mode === 'note' && Pipeline.gate(e).mode === 'full'))){ act.textContent = 'Find key points'; act.onclick = async () => { act.textContent = 'Reading…'; await analyzeEntry(e.id); renderReader(); }; }
   else act.hidden = true;
   $('readPlay').disabled = !e.audio;
   paintPlayer();
@@ -2345,6 +2345,7 @@ if(document.fonts) document.fonts.ready.then(placeAll);
   settings = Object.assign(settings, store.get('settings', {}));
   renderEntries(); renderInsights(store.get('insights', null));
   scheduleSync(0); announceCapsules(); resumeProcessing();
+  for(const en of entries.filter(x => x.text && !x.proc && isOpen(x) && x.analysis && x.analysis.mode === 'note' && Pipeline.gate(x).mode === 'full')) await processEntry(en.id);   // notes the old, stricter rule had skipped
 })();
 </script>
 </body>
