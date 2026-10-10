@@ -44,7 +44,7 @@ Create database*. Open the *Rules* tab and set `{ "rules": { ".read": true, ".wr
 > keys it finds in public repos. The open database rules also let anyone read and write every entry, which is fine for a demo and
 > not for real journals. A real release should put the keys and the database behind a small server.
 
-Audio recordings stay on the device that made them; only the text, word timings and waveform go to the shared database.
+Everything is online in the shared database: entries **and their audio** (24 kbps voice, stored in ~900 KB chunks, about 240 KB per minute). Any device can play or transcribe any recording; each device keeps a local copy as a cache. On the free Firebase plan (1 GB) that is roughly 70 hours of recordings.
 
 ## Project notes
 

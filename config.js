@@ -21,6 +21,6 @@ window.ALIVE_CONFIG = {
 
   // 3) SHARED DATABASE. One database for everyone (all entries together).
   //    Firebase Realtime Database URL, e.g. 'https://alive-demo-default-rtdb.firebaseio.com'  (no trailing slash).
-  //    Leave empty to keep entries only on each device. Setup steps are in README.md.
+  //    Entries AND their audio are stored here. Leave empty to keep everything on each device. Setup steps are in README.md.
   databaseURL: ''
 };

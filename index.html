@@ -576,20 +576,26 @@ const idb = {
   },
   put(k, v){ try{ this.db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); }catch{} }
 };
-/* Recordings live in their own IndexedDB store, keyed by entry id (blobs are too big for localStorage; memory fallback).
-   Audio stays on this device: the entry's text, word timings and waveform sync, the audio itself does not. */
+/* Recordings: online in the shared database (uploaded with their entry during sync), with a local IndexedDB copy as a cache
+   so playback is instant after the first listen. Any device can play or transcribe any recording. */
 const audioMem = new Map();
 const AudioStore = {
-  async put(id, blob){
+  async put(id, blob){                                            // local cache only; the upload happens in syncNow
     audioMem.set(id, blob);
     if(!idb.db) return;
     try{ await new Promise((res, rej) => { const t = idb.db.transaction('audio', 'readwrite'); t.objectStore('audio').put(blob, id); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
     catch(err){ console.warn('could not store audio', err); }
   },
-  async get(id){
+  async getLocal(id){
     if(audioMem.has(id)) return audioMem.get(id);
     if(!idb.db) return null;
     return new Promise(res => { try{ const r = idb.db.transaction('audio').objectStore('audio').get(id); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); }catch{ res(null); } });
+  },
+  async get(id){                                                  // local cache first, then the shared database
+    const local = await this.getLocal(id); if(local) return local;
+    if(!SHARED_DB) return null;
+    try{ const b = await DB.getAudio(id); if(b) this.put(id, b); return b; }
+    catch(err){ console.warn('could not download audio', err); return null; }
   },
   async has(id){ return !!(await this.get(id)); },
   del(id){ audioMem.delete(id); try{ if(idb.db) idb.db.transaction('audio', 'readwrite').objectStore('audio').delete(id); }catch{} }
@@ -702,7 +708,8 @@ async function startCapture(){
   loop(0);
   const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
   R.chunks = [];
-  R.mr = new MediaRecorder(R.stream, mime ? { mimeType:mime } : undefined);
+  // 24 kbps Opus is clear for a voice and keeps uploads small (~180 KB per minute)
+  R.mr = new MediaRecorder(R.stream, Object.assign({ audioBitsPerSecond:24000 }, mime ? { mimeType:mime } : {}));
   R.mr.ondataavailable = e => e.data.size && R.chunks.push(e.data);
   R.mr.start(1000);
 }
@@ -945,7 +952,7 @@ async function togglePlay(id, atFrac){
     return;
   }
   const blob = await AudioStore.get(id);
-  if(!blob){ toast('This recording isn\'t on this device'); return; }
+  if(!blob){ toast(SHARED_DB ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
   stopPlayer();
   const a = new Audio(); a.src = URL.createObjectURL(blob); Player.id = id; Player.a = a; Player.url = a.src;
   a.addEventListener('timeupdate', paintPlayer); a.addEventListener('play', paintPlayer); a.addEventListener('pause', paintPlayer);
@@ -1039,7 +1046,7 @@ $('readDelete').onclick = () => {
 };
 async function transcribeEntry(id){   // the "posterior transcription": run on a saved recording whenever you like
   const e = entryById(id), blob = await AudioStore.get(id);
-  if(!e || !blob){ toast('This recording isn\'t on this device'); return; }
+  if(!e || !blob){ toast(SHARED_DB ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
   if(!KEY.transcribe()){ toast('No transcription key set (see config.js)'); return; }
   $('readAction').textContent = 'Transcribing…';
   try{
@@ -1517,8 +1524,26 @@ const DB = {
     return JSON.stringify(o);
   },
   async write(id, text){ await this.check(await fetch(this.url('entries/' + id), { method:'PUT', body:text })); return 'x'; },
-  async remove(id){ await this.check(await fetch(this.url('entries/' + id), { method:'DELETE' })); }
+  async remove(id){
+    await this.check(await fetch(this.url('entries/' + id), { method:'DELETE' }));
+    await this.check(await fetch(this.url('audio/' + id), { method:'DELETE' }));   // and its recording
+  },
+  // Audio lives under audio/<id> as base64 split into ~900 KB parts (the database caps one value at 10 MB, so long recordings are chunked).
+  async putAudio(id, blob){
+    const s = await blobToB64(blob), CH = 900000, parts = {};
+    for(let i = 0, n = 0; i < s.length; i += CH, n++) parts['p' + n] = s.slice(i, i + CH);
+    await this.check(await fetch(this.url('audio/' + id), { method:'PUT',
+      body:JSON.stringify({ type:blob.type || 'audio/webm', n:Object.keys(parts).length, parts }) }));
+  },
+  async getAudio(id){
+    const o = await (await this.check(await fetch(this.url('audio/' + id), { cache:'no-store' }))).json();
+    if(!o || !o.parts) return null;
+    let s = ''; for(let i = 0; i < o.n; i++) s += o.parts['p' + i] || '';
+    return b64ToBlob(s, o.type);
+  }
 };
+const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+const b64ToBlob = (s, type) => { const bin = atob(s), u = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type }); };
 GH.label = () => settings.ghRepo;
 const Backend = SHARED_DB ? DB : GH;                       // the shared database wins when configured
 
@@ -1540,7 +1565,10 @@ async function syncNow(){
       const id = String(e.id);
       if(id in remote) continue;
       if(known.has(id)){ entries = entries.filter(x => x !== e); changed = true; }       // deleted on another device
-      else remote[id] = await Backend.write(id, await seal(e));                           // new here: push
+      else{                                                                                // new here: push
+        if(SHARED_DB && e.audio){ const b = await AudioStore.getLocal(e.id); if(b) await DB.putAudio(e.id, b); }   // recording first, so nobody sees an entry without its audio
+        remote[id] = await Backend.write(id, await seal(e));
+      }
     }
     for(const id of Object.keys(remote)){
       if(localIds.has(id)) continue;
