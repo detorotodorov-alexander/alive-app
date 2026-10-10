@@ -25,26 +25,27 @@ then open http://localhost:5173. On a phone you need HTTPS for the microphone (a
 
 ## The Alive server (works on every device, nothing to configure)
 
-`server/worker.js` is a Cloudflare Worker (free plan) between the site and OpenAI / GitHub. It keeps the two OpenAI keys and the
-GitHub token as **secrets**, so they are never in this repo or in the page, and it only accepts requests from this site.
-It also caps the model (`gpt-4o-mini`) and the reply size, so nobody can run up the bill with expensive calls.
+The folder [`api/`](api) holds Vercel serverless functions (free Hobby plan) between the site and OpenAI / GitHub. They keep the two
+OpenAI keys and the GitHub token as **environment variables**, so they are never in this repo or in the page, and they only accept
+requests from this site. They also fix the model (`gpt-4o-mini`) and cap the reply size, so nobody can run up the bill with
+expensive calls. The site itself stays on GitHub Pages; Vercel only runs `api/`.
 
-1. Create a free account at **dash.cloudflare.com**.
-2. *Workers & Pages* → *Create* → *Create Worker* → name it `alive-api` → *Deploy*.
-3. *Edit code* → replace everything with the contents of [`server/worker.js`](server/worker.js) → *Deploy*.
-4. *Settings* → *Variables and Secrets* → *Add*:
-   | Name | Type | Value |
-   |------|------|-------|
-   | `GITHUB_REPO` | Text | `detorotodorov-alexander/alive-app` |
-   | `ALLOWED_ORIGIN` | Text | `https://detorotodorov-alexander.github.io` |
-   | `OPENAI_TRANSCRIBE_KEY` | Secret | your Whisper key |
-   | `OPENAI_TEXT_KEY` | Secret | your text key |
-   | `GITHUB_TOKEN` | Secret | fine-grained token: only `alive-app`, *Contents: Read and write* |
+1. Create a free account at **vercel.com** (*Continue with GitHub* is the easy way).
+2. *Add New…* → *Project* → import **alive-app** → *Framework Preset: Other* → leave the rest as is → **Deploy**.
+3. *Settings* → *Environment Variables* → add these (Production), then **Redeploy**:
+   | Name | Value |
+   |------|-------|
+   | `OPENAI_TRANSCRIBE_KEY` | your Whisper key |
+   | `OPENAI_TEXT_KEY` | your text key |
+   | `GITHUB_TOKEN` | fine-grained token: only `alive-app`, *Contents: Read and write* |
+   | `GITHUB_REPO` | `detorotodorov-alexander/alive-app` |
+   | `ALLOWED_ORIGIN` | `https://detorotodorov-alexander.github.io` |
+4. Copy your project's address plus `/api` (for example `https://alive-app.vercel.app/api`) into `apiURL` in [`config.js`](config.js)
+   and **empty** `openaiTranscribeKey` and `openaiTextKey` there. Commit.
+5. Because keys were once in this repo's history, **rotate them** in OpenAI (create new keys, update the two Vercel variables, delete the old).
 
-   Then *Deploy* again.
-5. Copy the Worker's address (`https://alive-api.<your-subdomain>.workers.dev`) into `apiURL` in [`config.js`](config.js) and commit.
-
-From the command line instead: `cd server && npx wrangler deploy`, then `npx wrangler secret put` for each secret.
+Limits: a recording up to about 20 minutes (the request body limit is 4.5 MB at the app's 24 kbps). Reading entries and audio doesn't
+use the server at all; the app reads the public repo directly.
 
 ## Demo setup (GitHub is the database)
 

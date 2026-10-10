@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/transcribe.js": { "maxDuration": 60 },
+    "api/chat.js": { "maxDuration": 60 },
+    "api/audio/[id].js": { "maxDuration": 30 },
+    "api/entries/[id].js": { "maxDuration": 30 }
+  }
+}

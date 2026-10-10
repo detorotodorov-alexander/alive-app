@@ -822,10 +822,14 @@ async function stopRecording(){
 
 async function transcribe(blob){
   const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-  const fd = new FormData(); fd.append('file', blob, 'audio.' + ext); fd.append('model', MODELS.transcribe);
-  fd.append('response_format', 'verbose_json'); fd.append('timestamp_granularities[]', 'word');   // word times let the transcript follow playback
-  const r = await fetch(API ? API + '/transcribe' : 'https://api.openai.com/v1/audio/transcriptions', {
-    method:'POST', headers:API ? {} : { Authorization:'Bearer ' + KEY.transcribe() }, body:fd });
+  let r;
+  if(API){                                                          // the server rebuilds the Whisper request (model and format are fixed there)
+    r = await fetch(API + '/transcribe', { method:'POST', headers:{ 'content-type':blob.type || 'audio/webm' }, body:blob });
+  }else{
+    const fd = new FormData(); fd.append('file', blob, 'audio.' + ext); fd.append('model', MODELS.transcribe);
+    fd.append('response_format', 'verbose_json'); fd.append('timestamp_granularities[]', 'word');   // word times let the transcript follow playback
+    r = await fetch('https://api.openai.com/v1/audio/transcriptions', { method:'POST', headers:{ Authorization:'Bearer ' + KEY.transcribe() }, body:fd });
+  }
   if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error?.message || r.status);
   const j = await r.json();
   return { text:(j.text || '').trim(), words:(j.words || []).map(w => ({ w:w.word, s:+w.start.toFixed(2), e:+w.end.toFixed(2) })) };
@@ -1635,14 +1639,22 @@ const SRV = {
   canWrite: () => true,
   async check(r){ if(!r.ok){ const j = await r.json().catch(() => ({})); throw new Error('Server: ' + (j.error || r.status)); } return r; },
   async list(){ return (await this.check(await fetch(API + '/entries', { cache:'no-store' }))).json(); },
-  async read(id){ return (await this.check(await fetch(API + '/entries/' + id, { cache:'no-store' }))).text(); },
-  async write(id, text, sha){
-    const r = await this.check(await fetch(API + '/entries/' + id, { method:'PUT', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ text, sha }) }));
+  // Reads go straight to the public repo (fast, no size limit, no server in the way); ?t= defeats the 5-minute raw cache.
+  async read(id){ return (await this.check(await fetch(RAW(`entries/${id}.json`) + '?t=' + Date.now(), { cache:'no-store' }))).text(); },
+  async write(id, text){
+    const r = await this.check(await fetch(API + '/entries/' + id, { method:'PUT', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ text }) }));
     return (await r.json()).sha;
   },
   async remove(id){ await this.check(await fetch(API + '/entries/' + id, { method:'DELETE' })); },
   async putAudio(id, blob){ await this.check(await fetch(API + '/audio/' + id, { method:'PUT', headers:{ 'content-type':blob.type || 'audio/webm' }, body:blob })); },
-  async getAudio(id){ const r = await fetch(API + '/audio/' + id, { cache:'no-store' }); return r.ok ? r.blob() : null; }
+  async getAudio(id){
+    const e = entryById(id), first = (e && e.audioExt) || 'webm';
+    for(const ext of [first, first === 'webm' ? 'mp4' : 'webm']){
+      const r = await fetch(RAW(`audio/${id}.${ext}`) + '?t=' + Date.now(), { cache:'no-store' });
+      if(r.ok) return new Blob([await r.arrayBuffer()], { type:ext === 'mp4' ? 'audio/mp4' : 'audio/webm' });
+    }
+    return null;
+  }
 };
 const Backend = SHARED_DB ? DB : API ? SRV : GH;           // Firebase if configured, else the Alive server, else GitHub directly
 
