@@ -1,12 +1,16 @@
 # Removed from Alive, and how to bring it back
 
-Current screen: the title text on top, the web fixed behind it, the cards in front (resting at the bottom). Scrolling the
-cards up covers the web and the title, which blur and fade as they pass. The web's nodes still take taps; wheel and drag
-gestures that start on the web or title are forwarded to the scroller.
+Current screen: the title on top, the memory **web** (or the **timeline**) big in the middle, and a **task bar** at the bottom:
+Memories (opens the cards in a sheet) | Record | Web/Timeline switch. The web's nodes take taps (they open the cards, filtered).
+The timeline is a vertical line, newest on top, with key points as pills coloured by type of memory and sized in three tiers.
+
+Moved on request (not removed): the **cards** used to sit on the home page and scroll over the web and title (with the title blurring
+under them, a bottom-resting stack and lift room). They now live in the Memories sheet (`#cardsSheet`). The old scroll layout code
+is gone; `archive/` and git history have it.
 
 ## Hidden for now (still in `index.html`)
 
-The screen is only: title, web, cards, record button. Everything below is hidden by CSS. Delete the selector to bring it back.
+Everything below is hidden by CSS (or parked in `#parked`). Delete the selector to bring it back.
 
 | What | Hidden by | Notes |
 |------|-----------|-------|
