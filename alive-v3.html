@@ -239,11 +239,17 @@
   .pill.on .plus{background:#ffb27a}
 
   /* ===== Memories gallery: phone-style tiles, text inside each tile, the picture as its background ===== */
-  .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6cqw}
-  .tmonth{grid-column:1 / -1;margin:3cqw 1cqw 1cqw;font:italic 4.4cqw "Lora",Georgia,serif;color:var(--calm)}
+  /* edge to edge, like a phone gallery: the sheet fills the screen and the tiles touch (a hairline gap, no margins, no rounding) */
+  #cardsSheet{left:0;right:0;bottom:0;height:100%;border-radius:0;box-shadow:none}
+  #cardsSheet .grab{padding-top:calc(env(safe-area-inset-top) + 3.2cqw)}
+  #cardsSheet .hub-scroll{padding:0 0 4cqw}
+  #cardsSheet .hub-title{margin-bottom:3cqw}
+  #entries .empty{padding:0 6cqw}
+  .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5cqw}
+  .tmonth{grid-column:1 / -1;margin:4cqw 4cqw 1.6cqw;font:italic 4.4cqw "Lora",Georgia,serif;color:var(--calm)}
   .tmonth:first-child{margin-top:0}
   .tile{position:relative;isolation:isolate;overflow:hidden;cursor:pointer;border:0;text-align:left;color:#fff;aspect-ratio:3 / 4;
-    padding:2.4cqw;border-radius:5cqw;corner-shape:superellipse(2.8);display:flex;flex-direction:column;justify-content:space-between;
+    padding:2.6cqw;border-radius:0;display:flex;flex-direction:column;justify-content:space-between;
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--c1:#1fd08a;--c2:#07744f;--blob:#012a1f}
   .tile::before{content:"";position:absolute;inset:0;z-index:-2;
     background:radial-gradient(ellipse 80% 60% at 30% 85%,var(--blob) 0%,transparent 100%),linear-gradient(165deg,var(--c1),var(--c2))}
@@ -257,7 +263,7 @@
   .tile.sage{--c1:#1fd08a;--c2:#07744f;--blob:#012a1f} .tile.rose{--c1:#3fa9ff;--c2:#0b55b8;--blob:#01204a} .tile.cobalt{--c1:#3563ff;--c2:#0f1f9c;--blob:#02030a}
   .tile.ember{--c1:#ffb42e;--c2:#f0661c;--blob:#0d38c8} .tile.plum{--c1:#18c4bd;--c2:#07616d;--blob:#021a24}
   .tile.sealed .tx{font-size:5cqw;text-align:center;align-self:center;margin:auto 0}
-  .tile:active{scale:.97}
+  .tile:active{opacity:.8}
 
   /* ===== Recording cards: soft gradient squircles with a dark glowing core, like the widget reference ===== */
   .egrid{display:grid;grid-template-columns:1fr 1fr;gap:3cqw}
