@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#05060a">
+<title>Alive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05060a; --ink:#eef2f7; --dim:#8a93a6; --line:rgba(255,255,255,.09);
+    --glass:rgba(18,22,34,.62); --calm:#3fd6c8; --warm:#ff8a4c; --violet:#8b7bff;
+  }
+  *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;touch-action:manipulation}
+  body{display:grid;place-items:center}
+
+  /* Galaxy S24 Ultra viewport: 412 x 915 CSS px (19.5:9). Fills a real phone, letterboxes elsewhere. */
+  #phone{
+    position:relative; overflow:hidden; background:#000;
+    aspect-ratio:412/915;
+    width:min(100vw, calc(100dvh * 412 / 915));
+    container-type:size;
+  }
+  @media (min-width:600px){ #phone{border-radius:6cqw;box-shadow:0 0 0 2px #1b1f2b,0 30px 80px #000a} }
+
+  #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #fallback{position:absolute;inset:0;display:none;
+    background:radial-gradient(circle at 50% 44%,#1d7f86 0,#0a1a24 30%,#05060a 70%)}
+
+  .layer{position:absolute;inset:0;display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 4cqw) 6cqw 0}
+  header{display:flex;align-items:center;justify-content:space-between;height:11cqw}
+  .logo{font-size:6.2cqw;font-weight:650;letter-spacing:.02em}
+  .logo i{font-style:normal;color:var(--calm)}
+  .icon-btn{width:10cqw;height:10cqw;border-radius:50%;border:1px solid var(--line);background:var(--glass);
+    color:var(--ink);display:grid;place-items:center;font-size:4.6cqw;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+
+  main{flex:1;position:relative;min-height:0}
+  .view{position:absolute;inset:0;display:none;flex-direction:column}
+  .view.on{display:flex}
+
+  /* Record view */
+  #v-record{justify-content:space-between;align-items:center;text-align:center}
+  .status{margin-top:5cqw;font-size:4cqw;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;min-height:6cqw}
+  .prompt{margin-top:2cqw;font-size:5.4cqw;line-height:1.3;font-weight:500;padding:0 2cqw;min-height:21cqw}
+  .live{width:100%;margin-bottom:4cqw;max-height:30cqw;overflow:auto;font-size:4.2cqw;line-height:1.45;
+    color:#cfd6e4;text-align:left;padding:3.5cqw 4cqw;border-radius:5cqw;background:var(--glass);
+    border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:none}
+  .live.has{display:block}
+  .rec-wrap{display:flex;flex-direction:column;align-items:center;gap:3cqw;padding-bottom:5cqw}
+  #rec{width:22cqw;height:22cqw;border-radius:50%;border:0;position:relative;color:#04120f;
+    background:linear-gradient(145deg,#6ff0e2,#2bb5b0);box-shadow:0 0 0 1.2cqw rgba(63,214,200,.18),0 2cqw 7cqw rgba(63,214,200,.35);
+    transition:transform .15s, background .3s, box-shadow .3s;display:grid;place-items:center}
+  #rec:active{transform:scale(.94)}
+  #rec .dot{width:7cqw;height:7cqw;border-radius:50%;background:#04120f;transition:all .25s}
+  #rec.on{background:linear-gradient(145deg,#ffb27a,#ff6b3d);box-shadow:0 0 0 1.4cqw rgba(255,138,76,.2),0 2cqw 8cqw rgba(255,107,61,.45)}
+  #rec.on .dot{border-radius:1.6cqw;width:6.5cqw;height:6.5cqw}
+  #rec:disabled{opacity:.5}
+  .timer{font-variant-numeric:tabular-nums;color:var(--dim);font-size:3.8cqw;height:5cqw}
+
+  /* Scroll views */
+  .scroll{flex:1;overflow-y:auto;padding:2cqw 0 4cqw;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  h2{font-size:6cqw;font-weight:600;margin:2cqw 0 3cqw}
+  .card{background:var(--glass);border:1px solid var(--line);border-radius:5cqw;padding:4cqw;margin-bottom:3cqw;
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .card .meta{font-size:3.2cqw;color:var(--dim);letter-spacing:.05em;margin-bottom:1.6cqw;display:flex;justify-content:space-between}
+  .card p{font-size:4cqw;line-height:1.5;color:#dfe5f1;white-space:pre-wrap}
+  .card h3{font-size:3.3cqw;letter-spacing:.14em;text-transform:uppercase;color:var(--calm);margin-bottom:2cqw;font-weight:600}
+  .card ul{padding-left:4.5cqw;font-size:4cqw;line-height:1.5;color:#dfe5f1}
+  .card li{margin-bottom:1.4cqw}
+  .big{font-size:5cqw;line-height:1.35;font-weight:500}
+  .chip{display:inline-block;padding:1.2cqw 3cqw;border-radius:99px;font-size:3.5cqw;margin:0 1.5cqw 1.5cqw 0;
+    background:rgba(139,123,255,.16);border:1px solid rgba(139,123,255,.35)}
+  .empty{color:var(--dim);text-align:center;font-size:4cqw;line-height:1.5;margin-top:20cqw;padding:0 6cqw}
+  .btn{width:100%;border:0;border-radius:99px;padding:4cqw;font-size:4.2cqw;font-weight:600;color:#06110f;
+    background:linear-gradient(135deg,#6ff0e2,#8b7bff);margin-bottom:3cqw}
+  .btn.ghost{background:var(--glass);color:var(--ink);border:1px solid var(--line)}
+  .btn:disabled{opacity:.5}
+  .del{background:none;border:0;color:var(--dim);font-size:3.2cqw}
+
+  /* Tab bar */
+  nav{display:flex;gap:1.5cqw;margin:0 -2cqw;padding:2cqw 2cqw calc(env(safe-area-inset-bottom) + 3cqw);}
+  nav button{flex:1;border:0;background:none;color:var(--dim);font-size:3.3cqw;padding:2cqw 0;border-radius:99px;
+    display:flex;flex-direction:column;align-items:center;gap:.6cqw;letter-spacing:.05em}
+  nav button b{font-size:5cqw;font-weight:400}
+  nav button.on{color:var(--ink);background:var(--glass);border:1px solid var(--line)}
+
+  /* Settings sheet */
+  #sheet{position:absolute;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:10}
+  #sheet.on{display:flex}
+  #sheet .pane{width:100%;background:#0d1019;border-top:1px solid var(--line);border-radius:6cqw 6cqw 0 0;
+    padding:5cqw 6cqw calc(env(safe-area-inset-bottom) + 6cqw);max-height:85%;overflow:auto}
+  .pane label{display:block;font-size:3.4cqw;color:var(--dim);margin:3cqw 0 1.4cqw}
+  .pane input{width:100%;background:#151a27;border:1px solid var(--line);border-radius:3cqw;padding:3.2cqw;color:var(--ink);font-size:4cqw}
+  .pane small{display:block;color:var(--dim);font-size:3.2cqw;line-height:1.45;margin:2cqw 0 4cqw}
+  .toast{position:absolute;left:50%;top:18cqw;transform:translate(-50%,-4cqw);background:#111623ee;border:1px solid var(--line);
+    padding:2.6cqw 5cqw;border-radius:99px;font-size:3.6cqw;opacity:0;pointer-events:none;transition:.3s;z-index:20;white-space:nowrap}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ===== Warm / cinematic theme (overrides above) ===== */
+  :root{--bg:#0a0905;--ink:#f3ecdc;--dim:#9a9078;--line:rgba(243,236,220,.12);
+    --glass:rgba(24,20,12,.55);--calm:#e8c48a;--warm:#ff9a4a;--violet:#c98a52}
+  html,body{font-family:"Lora",Georgia,"Times New Roman",serif}
+  button,input{font-family:inherit}
+  #photo{position:absolute;inset:0;background:#0b0a06 url(hands.jpg) center/cover no-repeat;opacity:.8;filter:saturate(.9) contrast(1.05)}
+  #gl{mix-blend-mode:screen}
+  #vig{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 38%,transparent 35%,rgba(5,4,2,.75) 100%),
+               linear-gradient(to bottom,rgba(8,7,3,.55),transparent 22%,transparent 60%,rgba(8,7,3,.85))}
+  #grain{position:absolute;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+  #fallback{background:radial-gradient(circle at 50% 40%,#7a4a1c 0,#241608 32%,#0a0905 70%)}
+  .logo{font-weight:500}
+  .logo i{font-style:italic;color:var(--calm)}
+  #v-record{justify-content:space-between;align-items:stretch;text-align:left}
+  .status{margin-top:6cqw;font-size:3.5cqw;color:var(--calm);letter-spacing:.22em}
+  .prompt{margin-top:2cqw;font-size:10.5cqw;line-height:1.08;font-weight:400;letter-spacing:-.01em;min-height:34cqw;padding:0}
+  .sub{margin-top:3cqw;font-size:4cqw;line-height:1.5;color:#cdc3aa;max-width:78%}
+  .live{background:rgba(20,16,9,.5);color:#e6dcc2;font-style:italic}
+  .rec-wrap{padding-bottom:4cqw}
+  #rec{color:#1a0f04;background:linear-gradient(145deg,#f6dca8,#c98a52);
+    box-shadow:0 0 0 1.2cqw rgba(232,196,138,.16),0 2cqw 8cqw rgba(232,170,90,.35)}
+  #rec .dot{background:#1a0f04}
+  #rec.on{background:linear-gradient(145deg,#ffb27a,#e2552a);box-shadow:0 0 0 1.4cqw rgba(255,138,76,.22),0 2cqw 9cqw rgba(255,107,61,.5)}
+  h2{font-size:9cqw;font-weight:400;margin:3cqw 0 4cqw;letter-spacing:-.01em}
+  .card h3{font-size:3.2cqw;letter-spacing:.2em;font-weight:500}
+  .btn{background:linear-gradient(135deg,#f6dca8,#c98a52);color:#1a0f04}
+  .btn.ghost{background:var(--glass);color:var(--ink)}
+  .chip{background:rgba(232,196,138,.12);border-color:rgba(232,196,138,.35)}
+  #sheet .pane{background:#100d07}
+  .pane input{background:#17130b}
+  .toast{background:#17130bee}
+  /* straight edges, like the S24 Ultra's flat display */
+  @media (min-width:600px){ #phone{border-radius:0} }
+  .row{display:flex;align-items:center;justify-content:space-between;gap:3cqw;margin:3cqw 0 1cqw;font-size:4cqw}
+  .row input[type=checkbox]{width:6cqw;height:6cqw;accent-color:#c98a52}
+  .cap{display:flex;align-items:center;justify-content:center;gap:2cqw;margin-bottom:1cqw}
+  .cap button{background:none;border:1px solid var(--line);color:var(--dim);border-radius:99px;padding:1.6cqw 3.6cqw;font-size:3.4cqw}
+  .cap button.on{color:var(--calm);border-color:rgba(232,196,138,.5)}
+  .cap input{background:#17130b;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.4cqw 2.4cqw;font-size:3.4cqw;color-scheme:dark}
+  .cap input[hidden]{display:none}
+  button.chip{color:var(--ink);font-family:inherit;cursor:pointer}
+  button.chip.p{background:rgba(232,196,138,.16)} button.chip.w{background:rgba(255,154,74,.14);border-color:rgba(255,154,74,.4)}
+  button.chip.m{background:rgba(160,200,140,.12);border-color:rgba(160,200,140,.4)}
+  .pts{padding-left:4.5cqw;margin:0 0 2.4cqw;font-size:4cqw;line-height:1.45;color:#eadfc4}
+  .pts li{margin-bottom:1cqw}
+  .full{font-size:3.5cqw!important;color:var(--dim)!important;margin-bottom:2.4cqw}
+  .sealed{display:flex;align-items:center;gap:3cqw;color:var(--dim);font-style:italic;font-size:4cqw}
+  .link{background:none;border:0;color:var(--calm);font-size:3.4cqw;padding:1cqw 0;text-decoration:underline}
+
+  /* Living type: every letter levitates on a phase-shifted wave while one warm gradient drifts through the whole line.
+     JS (liven/place) splits text into letters and gives each its x-offset (--x) and the line width (--w),
+     so the per-letter gradients line up as a single continuous one. */
+  .alive .w{display:inline-block;white-space:nowrap}
+  .alive .l{display:inline-block;color:var(--calm);
+    background-image:linear-gradient(90deg,#f6e7c4,#e8c48a,#ff9a4a,#e9a6a0,#e8c48a,#f6e7c4);
+    background-size:var(--w,300px) 100%;background-repeat:repeat-x;
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    animation:lift 5.5s ease-in-out infinite alternate, drift 16s linear infinite;
+    animation-delay:calc(var(--i) * -.32s), 0s;
+    will-change:transform}
+  @keyframes lift{from{transform:translateY(.05em) rotate(-.5deg)}to{transform:translateY(-.07em) rotate(.5deg)}}
+  @keyframes drift{from{background-position:calc(var(--x,0px) * -1) 0}to{background-position:calc(var(--x,0px) * -1 + var(--w,300px)) 0}}
+  @media (prefers-reduced-motion:reduce){ .alive .l{animation:none} }
+</style>
+</head>
+<body>
+<div id="phone">
+  <div id="photo"></div>
+  <canvas id="gl"></canvas>
+  <div id="fallback"></div>
+  <div id="vig"></div>
+  <div id="grain"></div>
+
+  <div class="layer">
+    <header>
+      <div class="logo">Al<i>i</i>ve</div>
+      <button class="icon-btn" id="openSettings" aria-label="Settings">⚙</button>
+    </header>
+
+    <main>
+      <section class="view on" id="v-record">
+        <div>
+          <div class="status" id="status">Ready</div>
+          <div class="prompt" id="prompt"></div>
+          <div class="sub" id="sub"></div>
+        </div>
+        <div style="width:100%">
+          <div class="live" id="live"></div>
+          <div class="cap"><button id="capBtn">⏳ Seal as time capsule</button><input type="date" id="capDate" hidden></div>
+          <div class="rec-wrap">
+            <button id="rec" aria-label="Record"><span class="dot"></span></button>
+            <div class="timer" id="timer"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="v-journal">
+        <div class="scroll"><h2>Journal</h2><div id="entries"></div></div>
+      </section>
+
+      <section class="view" id="v-insights">
+        <div class="scroll"><h2>Insights</h2>
+          <button class="btn" id="analyze">Find my patterns</button>
+          <div id="insightOut"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav>
+      <button data-tab="record" class="on"><b>●</b>Speak</button>
+      <button data-tab="journal"><b>☰</b>Journal</button>
+      <button data-tab="insights"><b>✦</b>Insights</button>
+    </nav>
+  </div>
+
+  <div id="sheet"><div class="pane">
+    <h2>Settings</h2>
+    <label>OpenAI API key (Whisper transcription)</label>
+    <input id="kOpenAI" type="password" placeholder="sk-…" autocomplete="off">
+    <label>Anthropic API key (insights)</label>
+    <input id="kAnthropic" type="password" placeholder="sk-ant-…" autocomplete="off">
+    <div class="row"><span>Gentle reminders</span><input id="nudges" type="checkbox"></div>
+    <small>At most one quiet message every couple of days, only when things look calm: few notifications, nothing on your calendar. No streaks, no guilt.</small>
+    <label>Google Calendar access token (optional)</label>
+    <input id="kGcal" type="password" placeholder="ya29.…" autocomplete="off">
+    <small>Prototype stand-in for a proper Google sign-in. Needs the calendar.freebusy scope.</small>
+    <button class="btn ghost" id="previewNudge">Preview a reminder now</button>
+    <label>GitHub repository (private), owner/name</label>
+    <input id="kRepo" placeholder="you/alive-journal" autocomplete="off" autocapitalize="off">
+    <label>GitHub token (fine-grained, Contents read/write on that repo only)</label>
+    <input id="kGhToken" type="password" placeholder="github_pat_…" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+    <label>Encryption passphrase (recommended)</label>
+    <input id="kPass" type="password" placeholder="never leaves this device" autocomplete="new-password">
+    <small id="syncState">Entries are saved to your private repo. With a passphrase they are encrypted (AES-GCM) before upload, so GitHub only ever sees ciphertext. Lose the passphrase and they are unrecoverable.</small>
+    <button class="btn ghost" id="syncNow">Sync now</button>
+    <small>Prototype only: keys stay in this browser's IndexedDB and calls go straight from the page. Move them behind a server before shipping. Without keys, Alive falls back to the browser's built-in speech recognition and a local heuristic analysis.</small>
+    <button class="btn" id="saveSettings">Save</button>
+    <button class="btn ghost" id="sample">Load sample entries</button>
+    <button class="btn ghost" id="wipe">Delete all data</button>
+    <button class="btn ghost" id="closeSettings">Close</button>
+  </div></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script id="vs" type="x-shader/x-vertex">
+attribute vec2 a;
+void main(){ gl_Position = vec4(a, 0.0, 1.0); }
+</script>
+<script id="fs" type="x-shader/x-fragment">
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2  uRes;
+uniform float uTime;   // wrapped by JS to keep precision on mobile GPUs
+uniform float uLevel;  // smoothed mic level 0..1
+uniform float uRec;    // 0 idle .. 1 recording
+uniform float uProc;   // 0..1 processing
+
+float hash(vec2 p){
+  vec3 p3 = fract(vec3(p.xyx) * .1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+float noise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  f = f*f*(3.0 - 2.0*f);
+  return mix(mix(hash(i), hash(i+vec2(1,0)), f.x),
+             mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
+}
+float fbm(vec2 p){
+  float v = 0.0, a = .5;
+  for(int i=0;i<4;i++){ v += a*noise(p); p = p*2.03 + vec2(17.1, 9.2); a *= .5; }
+  return v;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / uRes;
+  float asp = uRes.x / uRes.y;
+  vec2 p = (uv - vec2(.5, .40)) * vec2(asp, 1.0);
+  float t = uTime * .15;
+
+  // nebula backdrop
+  vec3 col = vec3(.012,.011,.006);
+  float c1 = fbm(p*2.0 + vec2(t, -t*.7));
+  float c2 = fbm(p*3.1 - vec2(t*.8, t) + 4.0);
+  // warm firelight palette: amber idle -> ember orange while recording
+  vec3 calm = vec3(.95,.66,.32), warm = vec3(1.0,.38,.14), vio = vec3(.55,.30,.12);
+  vec3 tint = mix(calm, warm, uRec);
+  // slow drifting light shafts from above, like the reference photo
+  float shaft = smoothstep(.55, 0., abs(p.x*1.3 + .25*sin(p.y*2.0 + t*3.0) - .05)) * smoothstep(-.5,.6,p.y);
+  col += tint * shaft * (.05 + .08*uLevel) * (.5 + c1);
+  col += tint * smoothstep(.45,.95,c1) * (.10 + .20*uLevel);
+  col += vio  * smoothstep(.45,.95,c2) * .12;
+
+  // floating embers / dust particles (3 depth layers)
+  for(int i=0;i<24;i++){
+    float fi = float(i);
+    float lay = mod(fi,3.0);
+    vec2 h = vec2(hash(vec2(fi,1.7)), hash(vec2(fi,8.3)));
+    float spd = (.012 + .02*h.y) * (1.0 + lay*.5) * (1.0 + uLevel*2.5 + uRec);
+    vec2 pos = vec2((h.x-.5)*asp*1.1 + .03*sin(uTime*(.3+h.y) + fi), fract(h.y + uTime*spd) - .44);
+    float sz = (.0022 + .0035*h.x) * (1.0 + lay*.7);
+    float dd = length(p - pos);
+    float tw = .55 + .45*sin(uTime*(1.2+h.x*2.0) + fi*3.0);
+    float edge = smoothstep(1.0, .6, abs(pos.y+.02)*2.0);
+    col += mix(vec3(1.0,.82,.5), tint, .4) * (sz / (dd*dd*900.0 + sz)) * .35 * tw * edge * (1.0 + uLevel*1.5);
+  }
+
+  // orb
+  float r = length(p);
+  float ang = atan(p.y, p.x);
+  vec2 dir = vec2(cos(ang), sin(ang));
+  float wob = fbm(dir*1.4 + vec2(t*3.0, t*2.0)) * (.035 + .10*uLevel + .02*uProc);
+  float breathe = .006 * sin(uTime * 1.3);
+  float R = .115 + .02*uRec + .045*uLevel + wob + breathe;
+  float d = r - R;
+
+  float glow = exp(-max(d,0.0) * (7.0 - 3.5*uLevel)) * (.55 + .7*uLevel + .25*uRec);
+  col += mix(calm, warm, uRec) * glow * .55;
+  col += vio * exp(-max(d,0.0)*3.0) * .22;
+
+  float body = smoothstep(.03, -.02, d) * .8;
+  vec2 q = p / max(R, .01);
+  float swirl = fbm(q*2.2 + vec2(t*4.0, -t*3.0) + uLevel*2.0);
+  vec3 inner = mix(vec3(1.0,.80,.48), vec3(1.0,.50,.20), uRec);
+  inner = mix(inner, vec3(.75,.32,.10), smoothstep(.35,.9,swirl) * .6);
+  float lit = .55 + .45 * (1.0 - length(q - vec2(-.3,.35)) * .7);
+  vec3 orb = inner * lit + vec3(1.0) * pow(max(0.0, 1.0 - length(q - vec2(-.35,.4))*1.6), 3.0) * .5;
+  col = mix(col, orb, body);
+
+  // processing ring
+  float ringR = R * 1.55;
+  float ring = smoothstep(.006, 0.0, abs(r - ringR));
+  float arc = smoothstep(.1, .9, .5 + .5*sin(ang*3.0 - uTime*3.2));
+  col += vec3(1.0,.9,.7) * ring * arc * uProc * .9;
+
+  col *= 1.0 - .4 * dot(uv - .5, uv - .5);
+  col = max(col, 0.0);
+
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script>
+'use strict';
+/* ============ Config ============ */
+const MODELS = { transcribe:'whisper-1', insight:'claude-sonnet-5-5' };
+const PROMPTS = [
+  ['What is taking up space in your head?', 'Say it out loud. Naming it is the first step to lightening it.'],
+  ['What gave you energy today?', 'And what quietly drained it? Both are worth hearing.'],
+  ['What did you avoid, and why?', 'Avoidance is often a signpost to something that matters.'],
+  ['Would you repeat today for a year?', 'Speak honestly. Nobody is listening but you.'],
+  ['What do you want more of?', 'Tomorrow is a blank page. Start with a breath.']
+];
+
+/* ============ Storage ============ */
+/* No localStorage. Source of truth is a private GitHub repo (one JSON file per entry under entries/).
+   IndexedDB only holds an offline cache plus your settings, and is hydrated into `mem` at boot. */
+const mem = {};
+const idb = {
+  db:null,
+  async open(){
+    this.db = await new Promise((res, rej) => {
+      const r = indexedDB.open('alive', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+    await new Promise(res => {
+      const c = this.db.transaction('kv').objectStore('kv').openCursor();
+      c.onsuccess = () => { const cur = c.result; if(cur){ mem[cur.key] = cur.value; cur.continue(); } else res(); };
+      c.onerror = () => res();
+    });
+  },
+  put(k, v){ try{ this.db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); }catch{} }
+};
+const store = {
+  get(k, d){ return k in mem && mem[k] != null ? mem[k] : d; },
+  set(k, v){ mem[k] = v; idb.put(k, v); if(k === 'entries') scheduleSync(); }
+};
+let entries = [];
+let settings = { openai:'', anthropic:'', nudges:false, gcal:'', ghRepo:'', ghToken:'', ghPass:'' };
+const $ = id => document.getElementById(id);
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('on'), 2400); }
+
+/* ============ Shader ============ */
+const S = { level:0, rec:0, proc:0, targetLevel:0, recT:0, procT:0 };
+(function initGL(){
+  const canvas = $('gl');
+  const gl = canvas.getContext('webgl', { antialias:false, alpha:false, powerPreference:'low-power' });
+  if(!gl){ canvas.style.display = 'none'; $('fallback').style.display = 'block'; return; }
+  const compile = (type, src) => {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  };
+  let prog;
+  try{
+    prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, $('vs').textContent));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, $('fs').textContent));
+    gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  }catch(err){ console.warn('Shader failed:', err); canvas.style.display = 'none'; $('fallback').style.display = 'block'; return; }
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'a');
+  gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const U = n => gl.getUniformLocation(prog, n);
+  const uRes = U('uRes'), uTime = U('uTime'), uLevel = U('uLevel'), uRec = U('uRec'), uProc = U('uProc');
+
+  // Cap render resolution: sharp enough on a 1440x3120 panel, cheap enough for mobile GPUs.
+  let scale = Math.min(window.devicePixelRatio || 1, 2) * 0.75;
+  function resize(){
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.max(2, Math.round(r.width * scale));
+    canvas.height = Math.max(2, Math.round(r.height * scale));
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  new ResizeObserver(resize).observe(canvas); resize();
+
+  const t0 = performance.now(); let last = t0, frames = 0, slow = 0;
+  function frame(now){
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    S.level += (S.targetLevel - S.level) * Math.min(1, dt * 14);
+    S.rec   += (S.recT - S.rec)   * Math.min(1, dt * 4);
+    S.proc  += (S.procT - S.proc) * Math.min(1, dt * 4);
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.uniform1f(uTime, ((now - t0) / 1000) % 600);
+    gl.uniform1f(uLevel, S.level); gl.uniform1f(uRec, S.rec); gl.uniform1f(uProc, S.proc);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    // auto-degrade on weak GPUs
+    if(++frames > 30){ if(dt > .04) slow++; if(slow > 20 && scale > .4){ scale *= .75; resize(); slow = 0; } if(frames > 300){ frames = 0; slow = 0; } }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ============ Recorder ============ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const R = { on:false, mode:null, stream:null, mr:null, chunks:[], ctx:null, an:null, raf:0, rec:null, text:'', t0:0, tick:0 };
+
+function setStatus(s){ $('status').textContent = s; }
+function setLive(t){ const l = $('live'); l.textContent = t; l.classList.toggle('has', !!t); l.scrollTop = l.scrollHeight; }
+
+async function startRecording(){
+  const mode = settings.openai ? 'whisper' : (SR ? 'speech' : null);
+  if(!mode){ toast('No speech engine — add an OpenAI key in settings'); return; }
+  R.mode = mode; R.text = ''; setLive('');
+  try{
+    if(mode === 'whisper'){
+      R.stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true } });
+      R.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = R.ctx.createMediaStreamSource(R.stream);
+      R.an = R.ctx.createAnalyser(); R.an.fftSize = 512; src.connect(R.an);
+      const buf = new Uint8Array(R.an.fftSize);
+      const loop = () => {
+        R.an.getByteTimeDomainData(buf);
+        let s = 0; for(const v of buf){ const x = (v - 128) / 128; s += x*x; }
+        S.targetLevel = Math.min(1, Math.sqrt(s / buf.length) * 5);
+        R.raf = requestAnimationFrame(loop);
+      };
+      loop();
+      const mime = ['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+      R.chunks = [];
+      R.mr = new MediaRecorder(R.stream, mime ? { mimeType:mime } : undefined);
+      R.mr.ondataavailable = e => e.data.size && R.chunks.push(e.data);
+      R.mr.start(1000);
+    }else{
+      // Android Chrome can't share the mic between SpeechRecognition and getUserMedia, so level is simulated here.
+      R.rec = new SR(); R.rec.continuous = true; R.rec.interimResults = true; R.rec.lang = navigator.language || 'en-US';
+      let finalText = '';
+      R.rec.onresult = e => {
+        let interim = '';
+        for(let i = e.resultIndex; i < e.results.length; i++){
+          const r = e.results[i];
+          if(r.isFinal) finalText += r[0].transcript + ' '; else interim += r[0].transcript;
+        }
+        R.text = finalText; setLive((finalText + interim).trim());
+        S.targetLevel = .5 + Math.random() * .4;
+      };
+      R.rec.onerror = e => { if(e.error !== 'no-speech' && e.error !== 'aborted') toast('Speech error: ' + e.error); };
+      R.rec.onend = () => { if(R.on) try{ R.rec.start(); }catch{} };  // Chrome ends sessions on silence; keep going
+      R.rec.start();
+      R.raf = setInterval(() => { S.targetLevel *= .82; }, 60);
+    }
+  }catch(err){
+    console.warn(err); toast(err.name === 'NotAllowedError' ? 'Microphone permission denied' : 'Could not start recording');
+    cleanup(); return;
+  }
+  R.on = true; R.t0 = Date.now(); S.recT = 1;
+  $('rec').classList.add('on'); setStatus('Listening');
+  R.tick = setInterval(() => {
+    const s = Math.floor((Date.now() - R.t0) / 1000);
+    $('timer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }, 250);
+}
+
+function cleanup(){
+  clearInterval(R.tick); cancelAnimationFrame(R.raf); clearInterval(R.raf);
+  if(R.stream) R.stream.getTracks().forEach(t => t.stop());
+  if(R.ctx) R.ctx.close().catch(()=>{});
+  R.stream = R.ctx = R.an = null; R.on = false;
+  S.targetLevel = 0; S.recT = 0;
+  $('rec').classList.remove('on'); $('timer').textContent = '';
+}
+
+async function stopRecording(){
+  const dur = Math.round((Date.now() - R.t0) / 1000);
+  R.on = false;  // before stop(), so SpeechRecognition.onend doesn't restart
+  $('rec').disabled = true; S.procT = 1; setStatus('Transcribing');
+  let text = '';
+  try{
+    if(R.mode === 'whisper'){
+      const blob = await new Promise(res => { R.mr.onstop = () => res(new Blob(R.chunks, { type:R.mr.mimeType })); R.mr.stop(); });
+      cleanup();
+      text = await transcribe(blob);
+    }else{
+      const done = new Promise(res => { R.rec.onend = res; setTimeout(res, 1500); });
+      R.rec.stop(); await done; cleanup();
+      text = R.text.trim() || $('live').textContent.trim();
+    }
+  }catch(err){ console.error(err); toast('Transcription failed: ' + (err.message || err)); cleanup(); }
+  S.procT = 0; $('rec').disabled = false; setStatus('Ready');
+  if(text){
+    const entry = { id:Date.now(), ts:Date.now(), dur, text }, cap = capsuleUntil();
+    if(cap) entry.capsule = cap;
+    entries.unshift(entry);
+    store.set('entries', entries); renderEntries();
+    setLive(cap ? '' : text);
+    toast(cap ? 'Sealed until ' + new Date(cap).toLocaleDateString([], { year:'numeric', month:'short', day:'numeric' }) : 'Saved to journal');
+    resetCapsule();
+    if(!cap) analyzeEntry(entry.id);                       // sealed entries stay unread until they open
+  }else if(!$('toast').classList.contains('on')){ toast('Nothing was heard'); setLive(''); }
+}
+
+async function transcribe(blob){
+  const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+  const fd = new FormData(); fd.append('file', blob, 'audio.' + ext); fd.append('model', MODELS.transcribe);
+  const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method:'POST', headers:{ Authorization:'Bearer ' + settings.openai }, body:fd });
+  if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error?.message || r.status);
+  return (await r.json()).text.trim();
+}
+
+$('rec').addEventListener('click', () => R.on ? stopRecording() : startRecording());
+
+/* ============ Journal ============ */
+function fmtDate(ts){ return new Date(ts).toLocaleString([], { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
+const isOpen = e => !e.capsule || e.capsule <= Date.now();     // false while a time capsule is still sealed
+const fmtDay = ts => new Date(ts).toLocaleDateString([], { year:'numeric', month:'long', day:'numeric' });
+const TAG_KINDS = { people:'p', projects:'', work:'w', events:'', missions:'m' };
+let filterTag = null;
+
+function renderEntries(){
+  const box = $('entries'); box.replaceChildren();
+  if(filterTag){
+    const b = el('button','chip','✕ ' + filterTag); b.onclick = () => { filterTag = null; renderEntries(); }; box.append(b);
+  }
+  const list = entries.filter(e => !filterTag || (isOpen(e) && e.tags && Object.values(e.tags).some(v => v.includes(filterTag))));
+  if(!list.length){ box.append(el('div','empty', filterTag ? 'Nothing with that tag.' : 'Nothing here yet.\nRecord your first thought.')); return; }
+  for(const e of list){
+    const c = el('div','card'), m = el('div','meta');
+    m.append(el('span', null, fmtDate(e.ts) + (e.dur ? ' · ' + e.dur + 's' : '') + (e.capsule && isOpen(e) ? ' · capsule' : '')));
+    const del = el('button','del','Delete');
+    del.onclick = () => { if(!isOpen(e) && !confirm('Delete this sealed capsule?')) return; entries = entries.filter(x => x.id !== e.id); store.set('entries', entries); renderEntries(); };
+    m.append(del); c.append(m);
+    if(!isOpen(e)){
+      c.append(el('div','sealed','⏳ Sealed until ' + fmtDay(e.capsule) + '. Future you will open this.'));
+    }else{
+      if(e.points && e.points.length){ const ul = el('ul','pts'); e.points.forEach(p => ul.append(el('li', null, p))); c.append(ul); }
+      c.append(el('p', e.points ? 'full' : null, e.text));
+      if(e.tags){
+        const tg = el('div');
+        for(const [kind, names] of Object.entries(e.tags)) for(const n of names){
+          const b = el('button','chip ' + (TAG_KINDS[kind] || ''), n); b.title = kind;
+          b.onclick = () => { filterTag = n; renderEntries(); }; tg.append(b);
+        }
+        c.append(tg);
+      }
+      if(!e.points){ const b = el('button','link','Find key points'); b.onclick = () => { b.textContent = 'Reading…'; analyzeEntry(e.id); }; c.append(b); }
+    }
+    box.append(c);
+  }
+}
+
+/* ---- Key points + tags (people, projects, work, events, missions) ---- */
+const EMPTY_TAGS = () => ({ people:[], projects:[], work:[], events:[], missions:[] });
+async function claudeEntry(text){
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{ 'content-type':'application/json', 'x-api-key':settings.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+    body:JSON.stringify({ model:MODELS.insight, max_tokens:600,
+      system:'Read one voice-journal entry. Reply with ONLY JSON: {"points":[2-4 short key points, each under 14 words],"tags":{"people":[],"projects":[],"work":[],"events":[],"missions":[]}}. people = named people. projects = things the speaker is building or working on. work = job, employers, colleagues, work topics. events = specific happenings (a dinner, an interview). missions = things the speaker wants or intends to do or become. Max 3 tags per category, short (1-3 words), proper nouns capitalised, otherwise lowercase. Use the entry\'s own language.',
+      messages:[{ role:'user', content:text }] }) });
+  if(!r.ok) throw new Error((await r.json().catch(() => ({}))).error?.message || r.status);
+  const txt = (await r.json()).content.map(b => b.text || '').join('');
+  const j = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+  const tags = EMPTY_TAGS(); for(const k in tags) tags[k] = (j.tags && Array.isArray(j.tags[k]) ? j.tags[k] : []).map(String).slice(0, 3);
+  return { points:(j.points || []).map(String).slice(0, 4), tags };
+}
+function localEntry(text){
+  const sents = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  const tags = EMPTY_TAGS(), add = (k, v) => { if(v && !tags[k].includes(v) && tags[k].length < 3) tags[k].push(v); };
+  const NOT_NAME = new Set(['I','Im','Ive','The','And','But','So','It','My','We','He','She','They','This','That','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']);
+  for(const s of sents){
+    const w = s.split(/\s+/);
+    w.slice(1).forEach(x => { const n = x.replace(/[^\p{L}]/gu, ''); if(/^\p{Lu}\p{Ll}{2,}$/u.test(n) && !NOT_NAME.has(n)) add('people', n); });
+    for(const m of s.toLowerCase().match(/\b(side project|project|startup|thesis|book|app)\b/g) || []) add('projects', m);
+    for(const m of s.toLowerCase().match(/\b(work|job|boss|deadline|meeting|client|office)\b/g) || []) add('work', m);
+    for(const m of s.toLowerCase().match(/\b(birthday|dinner|party|trip|wedding|concert|appointment|interview|run)\b/g) || []) add('events', m);
+    if(/\b(want to|need to|going to|plan to|should|will)\b/i.test(s)) add('missions', s.length > 60 ? s.slice(0, 57) + '…' : s.replace(/[.!?]$/, ''));
+  }
+  return { points:sents.slice(0, 3).map(s => s.length > 110 ? s.slice(0, 107) + '…' : s), tags };
+}
+async function analyzeEntry(id){
+  const e = entries.find(x => x.id === id); if(!e || !isOpen(e)) return;
+  let res = null;
+  if(settings.anthropic){ try{ res = await claudeEntry(e.text); }catch(err){ console.warn('entry analysis failed', err); toast('AI failed, using local analysis'); } }
+  res = res || localEntry(e.text);
+  const cur = entries.find(x => x.id === id); if(!cur) return;   // may have been deleted or replaced by a sync meanwhile
+  cur.points = res.points; cur.tags = res.tags;
+  store.set('entries', entries); renderEntries();
+}
+
+/* ---- Time capsules ---- */
+const capBtn = $('capBtn'), capDate = $('capDate');
+function capsuleUntil(){ return capDate.hidden || !capDate.value ? 0 : new Date(capDate.value + 'T09:00').getTime(); }
+function resetCapsule(){ capDate.hidden = true; capDate.value = ''; capBtn.classList.remove('on'); capBtn.textContent = '⏳ Seal as time capsule'; }
+capBtn.onclick = () => {
+  if(!capDate.hidden){ resetCapsule(); return; }
+  const min = new Date(Date.now() + 864e5), def = new Date(Date.now() + 365 * 864e5);
+  capDate.min = min.toISOString().slice(0, 10); capDate.value = def.toISOString().slice(0, 10);
+  capDate.hidden = false; capBtn.classList.add('on'); capBtn.textContent = '⏳ Opens on';
+};
+capDate.onchange = () => { if(!capDate.value || new Date(capDate.value + 'T09:00') <= Date.now()) capDate.value = capDate.min; };
+function announceCapsules(){
+  const ready = entries.filter(e => e.capsule && isOpen(e) && !e.opened);
+  if(!ready.length) return;
+  ready.forEach(e => e.opened = true); store.set('entries', entries);
+  toast(ready.length > 1 ? ready.length + ' time capsules are ready to open' : 'A time capsule from ' + fmtDay(ready[0].ts) + ' is ready');
+}
+
+/* ============ Insights ============ */
+const STOP = new Set('the a an and or but if so to of in on at for with from by is are was were be been am i me my we you it its this that these those not no yes do did does have has had just really very can could would should will about as up out than then there here what when who how why also like get got going go im ive dont didnt cant thats into over some more much too still even been one all they them their he she his her our us your because feel felt think thought today day'.split(' '));
+const POS = 'happy good great love enjoy excited proud grateful calm better energy fun progress win relaxed hope glad peaceful motivated alive'.split(' ');
+const NEG = 'tired stressed anxious worried bad sad angry frustrated overwhelmed stuck lonely drained behind guilty afraid fear hate hard exhausted burnt procrastinate avoid'.split(' ');
+
+function localInsights(list){
+  const words = {}, hours = [0,0,0,0]; let pos = 0, neg = 0;
+  for(const e of list){
+    const h = new Date(e.ts).getHours(); hours[h < 6 ? 3 : h < 12 ? 0 : h < 18 ? 1 : 2]++;
+    for(const w of e.text.toLowerCase().match(/[a-zà-ÿ']{3,}/g) || []){
+      if(POS.includes(w)) pos++; if(NEG.includes(w)) neg++;
+      if(!STOP.has(w)) words[w] = (words[w] || 0) + 1;
+    }
+  }
+  const top = Object.entries(words).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const score = pos + neg ? (pos - neg) / (pos + neg) : 0;
+  const part = ['mornings','afternoons','evenings','late nights'][hours.indexOf(Math.max(...hours))];
+  return {
+    summary:`Across ${list.length} entr${list.length>1?'ies':'y'}, your mood leans ${score>.2?'positive':score<-.2?'heavy':'mixed'}. (Local analysis — add an Anthropic key for deeper insight.)`,
+    mood:{ label: score>.2?'Uplifted':score<-.2?'Strained':'Balanced', score },
+    themes: top.map(([w,n]) => ({ name:w, detail:`Mentioned ${n} time${n>1?'s':''}` })),
+    patterns:[`You tend to reflect in the ${part}.`, top[0] ? `"${top[0][0]}" keeps coming back — it may be central right now.` : 'Record a few more entries to reveal patterns.'],
+    purpose:'Notice what you return to most. Your repeated words point at what matters to you.',
+    actions:['Record again tomorrow at the same time to build a streak.','Pick one recurring theme and decide on one small step for it.']
+  };
+}
+
+async function claudeInsights(list){
+  const corpus = list.slice(0, 40).reverse().map(e => `[${new Date(e.ts).toISOString()}] ${e.text}`).join('\n\n');
+  const system = 'You are Alive, a warm, perceptive reflection coach. Analyse the user\'s voice-journal entries and find real patterns in their life: recurring themes, emotional trends, energy drains and sources, avoided things, implied values. Be specific, cite their own words, never generic, never diagnose. Reply with ONLY JSON: {"summary":string,"mood":{"label":string,"score":number -1..1},"themes":[{"name":string,"detail":string}],"patterns":[string],"purpose":string,"actions":[string]} with 3-5 themes, 2-4 patterns, 2-3 actions.';
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{ 'content-type':'application/json', 'x-api-key':settings.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+    body:JSON.stringify({ model:MODELS.insight, max_tokens:1500, system, messages:[{ role:'user', content:corpus }] })
+  });
+  if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error?.message || r.status);
+  const txt = (await r.json()).content.map(b => b.text || '').join('');
+  return JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+}
+
+function renderInsights(i){
+  const out = $('insightOut'); out.replaceChildren(); if(!i) return;
+  const add = (title, node) => { const c = el('div','card'); c.append(el('h3', null, title), node); out.append(c); return c; };
+  add('Overview', el('p','big', i.summary));
+  const mood = el('p','big', `${i.mood.label}`); mood.append(el('span', null, `  (${(i.mood.score*100|0)>0?'+':''}${Math.round(i.mood.score*100)})`)); mood.lastChild.style.color = 'var(--dim)';
+  add('Mood', mood);
+  const th = el('div'); i.themes.forEach(t => { th.append(el('span','chip',t.name)); });
+  const tc = add('Themes', th); const ul0 = el('ul'); i.themes.forEach(t => ul0.append(el('li', null, t.name + ' — ' + t.detail))); tc.append(el('div')); tc.lastChild.style.height = '2cqw'; tc.append(ul0);
+  const ul = el('ul'); i.patterns.forEach(p => ul.append(el('li', null, p))); add('Patterns', ul);
+  add('Toward purpose', el('p','big', i.purpose));
+  const ua = el('ul'); i.actions.forEach(a => ua.append(el('li', null, a))); add('Next steps', ua);
+}
+
+$('analyze').addEventListener('click', async () => {
+  const open = entries.filter(isOpen);                      // sealed capsules are never read early
+  if(!open.length){ toast('Record something first'); return; }
+  const b = $('analyze'); b.disabled = true; b.textContent = 'Thinking…'; S.procT = 1;
+  try{
+    const res = settings.anthropic ? await claudeInsights(open) : localInsights(open);
+    store.set('insights', res); renderInsights(res);
+  }catch(err){
+    console.error(err); toast('AI failed, using local analysis'); const res = localInsights(open); renderInsights(res);
+  }
+  b.disabled = false; b.textContent = 'Find my patterns'; S.procT = 0;
+});
+
+/* ============ Navigation + settings ============ */
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.tab));
+  requestAnimationFrame(placeAll);   // hidden views have no layout until shown
+}));
+$('openSettings').onclick = () => {
+  $('kOpenAI').value = settings.openai; $('kAnthropic').value = settings.anthropic;
+  $('kGcal').value = settings.gcal; $('nudges').checked = settings.nudges;
+  $('kRepo').value = settings.ghRepo; $('kGhToken').value = settings.ghToken; $('kPass').value = settings.ghPass;
+  $('sheet').classList.add('on');
+};
+$('closeSettings').onclick = () => $('sheet').classList.remove('on');
+function readFields(){   // fields -> settings, so nothing depends on pressing Save first
+  settings = { openai:$('kOpenAI').value.trim(), anthropic:$('kAnthropic').value.trim(),
+               gcal:$('kGcal').value.trim(), nudges:$('nudges').checked,
+               ghRepo:$('kRepo').value.trim().replace(/^(https?:\/\/)?(www\.)?github\.com\//, '').replace(/[\s\/]+$/, '').replace(/\.git$/, ''),
+               ghToken:$('kGhToken').value.replace(/[^\x21-\x7E]/g, ''), ghPass:$('kPass').value };   // token: strips spaces, newlines, zero-width chars
+  store.set('settings', settings);
+}
+$('saveSettings').onclick = async () => {
+  readFields(); scheduleSync();
+  if(settings.nudges && !(await ensureNotifyPermission())){ settings.nudges = false; store.set('settings', settings); toast('Notifications are blocked'); return; }
+  $('sheet').classList.remove('on'); toast('Saved');
+};
+$('previewNudge').onclick = async () => {
+  if(!(await ensureNotifyPermission())){ toast('Allow notifications first'); return; }
+  await sendNudge(true); toast('Reminder sent');
+};
+
+/* ============ Quiet-moment reminders ============
+   Philosophy: Alive never nags. It speaks rarely, only when the day looks calm, and in your own voice.
+   Browser limits: a web page cannot read the Android notification panel, so that signal comes from an
+   optional native bridge (window.AliveNative.notificationCount(), e.g. a Capacitor plugin wrapping
+   NotificationListenerService). Calendar comes from Google Calendar freeBusy. Unknown signals are skipped. */
+const NUDGES = [
+  'I have a quiet moment. What am I carrying that I haven\'t said out loud yet?',
+  'Nothing is asking for me right now. Maybe this is when I ask something of myself.',
+  'I keep moving. Am I going somewhere I actually chose?',
+  'When did I last feel properly alive? What was I doing?',
+  'There is room in me today. What wants to be said?',
+  'I\'m still breathing, still here. What am I hoping for?',
+  'What would I tell a friend who was living my week?',
+  'The noise has settled. What is underneath it?'
+];
+const Signals = {
+  async notificationCount(){
+    try{ const n = window.AliveNative && window.AliveNative.notificationCount(); return typeof n === 'number' ? n : null; }catch{ return null; }
+  },
+  async calendarBusy(){  // busy at any point in the next hour? null = unknown
+    if(!settings.gcal) return null;
+    try{
+      const now = new Date(), end = new Date(now.getTime() + 60*6e4);
+      const r = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
+        method:'POST', headers:{ Authorization:'Bearer ' + settings.gcal, 'content-type':'application/json' },
+        body:JSON.stringify({ timeMin:now.toISOString(), timeMax:end.toISOString(), items:[{ id:'primary' }] }) });
+      if(!r.ok) return null;
+      return (await r.json()).calendars.primary.busy.length > 0;
+    }catch{ return null; }
+  }
+};
+
+async function ensureNotifyPermission(){
+  if(!('Notification' in window)) return false;
+  if(Notification.permission === 'default') await Notification.requestPermission();
+  return Notification.permission === 'granted';
+}
+
+async function isQuietMoment(){
+  if(!settings.nudges || !('Notification' in window) || Notification.permission !== 'granted') return false;
+  const h = new Date().getHours(); if(h < 9 || h >= 22) return false;                       // never at night
+  if(Date.now() - store.get('lastNudge', 0) < 40 * 36e5) return false;                      // at most every ~40h
+  if(entries[0] && Date.now() - entries[0].ts < 20 * 36e5) return false;                    // already spoke recently
+  const [n, busy] = await Promise.all([Signals.notificationCount(), Signals.calendarBusy()]);
+  if(busy === true) return false;
+  if(n !== null && n > 2) return false;                                                     // a busy panel means a busy head
+  return true;
+}
+
+async function composeNudge(){
+  if(settings.anthropic && entries.length){
+    try{
+      const recent = entries.slice(0, 5).map(e => e.text).join('\n---\n');
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-api-key':settings.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+        body:JSON.stringify({ model:MODELS.insight, max_tokens:80,
+          system:'Write ONE sentence in the first person ("I"), at most 22 words, quiet and elegant, that the reader will recognise as a thought in their own voice, inviting them to speak to themselves. Draw on their recent journal entries if relevant. No emojis, no exclamation marks, no guilt, no mention of apps, streaks or recording. Output only the sentence.',
+          messages:[{ role:'user', content:recent }] }) });
+      if(r.ok){ const t = (await r.json()).content[0].text.trim().replace(/^["“]|["”]$/g, ''); if(t) return t; }
+    }catch{}
+  }
+  return NUDGES[Math.floor(Math.random() * NUDGES.length)];
+}
+
+async function sendNudge(force){
+  if(!force && !(await isQuietMoment())) return;
+  const body = await composeNudge();
+  const opts = { body, tag:'alive-nudge', silent:true };
+  try{
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if(reg) await reg.showNotification('Alive', opts); else new Notification('Alive', opts);
+    if(!force) store.set('lastNudge', Date.now());
+  }catch(err){ console.warn('nudge failed', err); }
+}
+
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+// Only nudge while the app is in the background; checked every 5 min and when the page is hidden.
+setInterval(() => { if(document.hidden) sendNudge(false); }, 5 * 6e4);
+document.addEventListener('visibilitychange', () => { if(document.hidden) setTimeout(() => document.hidden && sendNudge(false), 60e3); });
+$('wipe').onclick = () => { if(confirm('Delete all entries and insights?')){ entries = []; store.set('entries', []); store.set('insights', null); renderEntries(); renderInsights(null); $('sheet').classList.remove('on'); } };
+$('sample').onclick = () => {
+  const d = 864e5, now = Date.now();
+  const s = [
+    'Woke up tired again. Stayed up too late scrolling. I keep saying I will start the side project but work drains me and I avoid it.',
+    'Went for a run before work and felt great, so much energy all morning. I want more days like this. Skipped it twice this week though.',
+    'Stressed about the deadline. Felt anxious in the meeting, and I think I am overcommitting because I do not like saying no.',
+    'Spent the evening with friends, really happy and calm. I realise I feel most alive when I am with people or making something.',
+    'Stuck again on the side project. I procrastinate when the next step is unclear. Maybe I need to break it into tiny pieces.'
+  ];
+  entries = s.map((text, i) => ({ id:now + i, ts:now - (s.length - i) * d + (i%2 ? 72e5 : 0), dur:30 + i*12, text })).reverse().concat(entries);
+  store.set('entries', entries); renderEntries(); $('sheet').classList.remove('on'); toast('Sample entries added');
+};
+
+/* ============ GitHub sync ============
+   Diff-based, no dirty flags. `remote` = ids known to exist in the repo after the last sync.
+   local∧remote: nothing · local only: new (push) or deleted elsewhere (drop) · remote only: new (pull) or deleted here (delete). */
+const b64 = {
+  enc: s => btoa(String.fromCharCode(...new TextEncoder().encode(s))),
+  dec: s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0))),
+  encBytes: u => btoa(String.fromCharCode(...u)),
+  decBytes: s => Uint8Array.from(atob(s), c => c.charCodeAt(0))
+};
+async function aesKey(pass, salt){
+  if(!(window.crypto && crypto.subtle)) throw new Error('Encryption needs HTTPS or localhost');
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:100000, hash:'SHA-256' }, base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+}
+async function seal(obj){
+  const plain = JSON.stringify(obj);
+  if(!settings.ghPass) return plain;
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, await aesKey(settings.ghPass, salt), new TextEncoder().encode(plain)));
+  return JSON.stringify({ v:1, salt:b64.encBytes(salt), iv:b64.encBytes(iv), ct:b64.encBytes(ct) });
+}
+async function unseal(text){
+  const o = JSON.parse(text);
+  if(o.v !== 1 || !o.ct) return o;                       // plaintext entry
+  if(!settings.ghPass) throw new Error('Entries are encrypted: enter your passphrase');
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64.decBytes(o.iv) }, await aesKey(settings.ghPass, b64.decBytes(o.salt)), b64.decBytes(o.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+const GH = {
+  ready: () => /^[\w.-]+\/[\w.-]+$/.test(settings.ghRepo) && !!settings.ghToken,
+  url: p => `https://api.github.com/repos/${settings.ghRepo}/contents/${p}`,
+  hdr: (accept = 'application/vnd.github+json') => ({ Authorization:'Bearer ' + settings.ghToken, Accept:accept, 'X-GitHub-Api-Version':'2022-11-28' }),
+  async check(r){
+    if(!r.ok){
+      const j = await r.json().catch(() => ({})), t = settings.ghToken;
+      const hint = `token ${t.slice(0, t.startsWith('github_pat_') ? 11 : 4)}…, ${t.length} chars`;
+      throw new Error(r.status === 401 ? `GitHub says "${j.message || 'Unauthorized'}" (${hint}; fine-grained tokens are ~93 chars)`
+        : r.status === 404 ? 'Repo not found, or the token has no access to it (check owner/name and repo selection)'
+        : r.status === 403 ? `Forbidden: ${j.message || 'token lacks Contents read/write'}`
+        : (j.message || r.status));
+    }
+    return r;
+  },
+  async list(){
+    const r = await fetch(this.url('entries'), { headers:this.hdr(), cache:'no-store' });
+    if(r.status === 404){                                  // folder missing: either empty repo or wrong repo; verify the repo
+      await this.check(await fetch(`https://api.github.com/repos/${settings.ghRepo}`, { headers:this.hdr() }));
+      return {};
+    }
+    const arr = await (await this.check(r)).json();
+    return Object.fromEntries(arr.filter(f => f.name.endsWith('.json')).map(f => [f.name.slice(0, -5), f.sha]));
+  },
+  async read(id){ return (await this.check(await fetch(this.url(`entries/${id}.json`), { headers:this.hdr('application/vnd.github.raw+json'), cache:'no-store' }))).text(); },
+  async write(id, text, sha){
+    const body = { message:'entry ' + id, content:b64.enc(text) }; if(sha) body.sha = sha;
+    const r = await this.check(await fetch(this.url(`entries/${id}.json`), { method:'PUT', headers:this.hdr(), body:JSON.stringify(body) }));
+    return (await r.json()).content.sha;
+  },
+  async remove(id, sha){
+    await this.check(await fetch(this.url(`entries/${id}.json`), { method:'DELETE', headers:this.hdr(), body:JSON.stringify({ message:'delete ' + id, sha }) }));
+  }
+};
+
+let syncing = false, syncAgain = false, syncTimer = 0;
+function setSync(msg){ const s = $('syncState'); if(s) s.textContent = msg; }
+function scheduleSync(delay = 1500){ clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, delay); }
+
+async function syncNow(){
+  if(!GH.ready()){ return; }
+  if(syncing){ syncAgain = true; return; }
+  syncing = true; setSync('Syncing…');
+  try{
+    const remote = await GH.list();                         // id -> sha
+    const known = new Set(store.get('remote', []));
+    const localIds = new Set(entries.map(e => String(e.id)));
+    let changed = false;
+
+    for(const e of [...entries]){
+      const id = String(e.id);
+      if(id in remote) continue;
+      if(known.has(id)){ entries = entries.filter(x => x !== e); changed = true; }       // deleted on another device
+      else remote[id] = await GH.write(id, await seal(e));                                // new here: push
+    }
+    for(const id of Object.keys(remote)){
+      if(localIds.has(id)) continue;
+      if(known.has(id)){ await GH.remove(id, remote[id]); delete remote[id]; }           // deleted here
+      else{ entries.push(await unseal(await GH.read(id))); changed = true; }              // new elsewhere: pull
+    }
+    entries.sort((a, b) => b.ts - a.ts);
+    mem.entries = entries; idb.put('entries', entries);     // persist without re-triggering sync
+    store.set('remote', Object.keys(remote));
+    if(changed) renderEntries();
+    setSync('Synced with ' + settings.ghRepo + ' · ' + new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
+  }catch(err){
+    console.warn('sync failed', err); setSync('Sync failed: ' + (err.message || err));
+    if(!$('sheet').classList.contains('on')) toast('Sync failed: ' + (err.message || err));
+  }
+  syncing = false;
+  if(syncAgain){ syncAgain = false; scheduleSync(500); }
+}
+$('syncNow').onclick = () => {
+  readFields();
+  if(!GH.ready()){
+    setSync(!/^[\w.-]+\/[\w.-]+$/.test(settings.ghRepo) ? `Repo must look like owner/name (got "${settings.ghRepo}")` : 'Token is empty');
+    toast('Check repo and token'); return;
+  }
+  syncNow();
+};
+window.addEventListener('online', () => scheduleSync(500));
+document.addEventListener('visibilitychange', () => { if(!document.hidden) scheduleSync(500); });
+
+/* ============ Boot ============ */
+/* ---- Living type ---- */
+let letterIdx = 0;
+function splitNode(node){
+  if(node.nodeType === 3){
+    const frag = document.createDocumentFragment();
+    for(const tok of node.textContent.split(/(\s+)/)){
+      if(!tok) continue;
+      if(/^\s+$/.test(tok)){ frag.append(' '); continue; }
+      const w = el('span', 'w');
+      for(const ch of tok){ const s = el('span', 'l', ch); s.style.setProperty('--i', letterIdx++); w.append(s); }
+      frag.append(w);
+    }
+    return frag;
+  }
+  const c = node.cloneNode(false); node.childNodes.forEach(k => c.append(splitNode(k))); return c;
+}
+function place(e){   // measure after layout: line width and each letter's x-offset keep the gradient continuous
+  const r = e.getBoundingClientRect(); if(!r.width) return;
+  e.style.setProperty('--w', r.width + 'px');
+  e.querySelectorAll('.l').forEach(s => s.style.setProperty('--x', (s.getBoundingClientRect().left - r.left) + 'px'));
+}
+const placeAll = () => document.querySelectorAll('.alive').forEach(place);
+function liven(e, text){
+  if(text != null) e.textContent = text;
+  e.setAttribute('aria-label', e.textContent); letterIdx = 0;
+  e.replaceChildren(...[...e.childNodes].map(splitNode)); e.classList.add('alive'); place(e);
+}
+new ResizeObserver(placeAll).observe($('phone'));
+if(document.fonts) document.fonts.ready.then(placeAll);
+
+{ const p = PROMPTS[new Date().getDate() % PROMPTS.length]; liven($('prompt'), p[0]); $('sub').textContent = p[1];
+  document.querySelectorAll('h2, .logo').forEach(h => liven(h)); }
+document.addEventListener('visibilitychange', () => { if(document.hidden && R.on) toast('Still recording…'); });
+(async function boot(){
+  try{ await idb.open(); }catch(err){ console.warn('IndexedDB unavailable, memory only', err); }
+  entries = store.get('entries', []);
+  settings = Object.assign(settings, store.get('settings', {}));
+  renderEntries(); renderInsights(store.get('insights', null));
+  scheduleSync(0); announceCapsules();
+})();
+</script>
+</body>
+</html>

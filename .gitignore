@@ -1,0 +1,7 @@
+# local scratch
+*.tmp
+x.tmp
+# your recordings and personal data never belong in this repo
+*.webm
+*.wav
+*.m4a
