@@ -8,6 +8,11 @@
    ===================================================================================== */
 window.ALIVE_CONFIG = {
 
+  // 0) THE ALIVE SERVER (recommended). URL of the Cloudflare Worker in server/worker.js, e.g. 'https://alive-api.yourname.workers.dev'
+  //    It holds the OpenAI keys and the GitHub token as secrets, so EVERY device can transcribe, use the AI and save, with nothing
+  //    to configure. This URL is not a secret. When it is set, leave 1) and 2) empty. Setup: README.md -> "The Alive server".
+  apiURL: '',
+
   // 1) SPEECH TO TEXT (Whisper). OpenAI key used only to transcribe recordings.
   //    Paste it here  ↓  e.g. 'sk-proj-...'
   openaiTranscribeKey: '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',

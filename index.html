@@ -538,14 +538,16 @@ void main(){
 const CFG = window.ALIVE_CONFIG || {};                              // shared project config, see config.js
 const MODELS = { transcribe:'whisper-1', text:CFG.textModel || 'gpt-4o-mini' };
 // The shared project keys in config.js win. Anything typed in Settings is only a fallback for local testing.
+// With the Alive server (config.js -> apiURL) the keys live on the server and every AI and database call goes through it.
+const API = (CFG.apiURL || '').replace(/\/+$/, '');
 const KEY = {
-  transcribe: () => CFG.openaiTranscribeKey || settings.openai,
-  text: () => CFG.openaiTextKey || settings.openaiText,
-  shared: () => !!(CFG.openaiTranscribeKey || CFG.openaiTextKey)
+  transcribe: () => API ? 'server' : (CFG.openaiTranscribeKey || settings.openai),
+  text: () => API ? 'server' : (CFG.openaiTextKey || settings.openaiText),
+  shared: () => !!(API || CFG.openaiTranscribeKey || CFG.openaiTextKey)
 };
 async function llm(system, user, { json = false, max = 600 } = {}){   // one place for every text-processing call (OpenAI chat)
-  const r = await fetch('https://api.openai.com/v1/chat/completions', {
-    method:'POST', headers:{ 'content-type':'application/json', Authorization:'Bearer ' + KEY.text() },
+  const r = await fetch(API ? API + '/chat' : 'https://api.openai.com/v1/chat/completions', {
+    method:'POST', headers:API ? { 'content-type':'application/json' } : { 'content-type':'application/json', Authorization:'Bearer ' + KEY.text() },
     body:JSON.stringify({ model:MODELS.text, max_tokens:max, temperature:.4,
       ...(json ? { response_format:{ type:'json_object' } } : {}),
       messages:[{ role:'system', content:system }, { role:'user', content:user }] }) });
@@ -822,8 +824,8 @@ async function transcribe(blob){
   const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
   const fd = new FormData(); fd.append('file', blob, 'audio.' + ext); fd.append('model', MODELS.transcribe);
   fd.append('response_format', 'verbose_json'); fd.append('timestamp_granularities[]', 'word');   // word times let the transcript follow playback
-  const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method:'POST', headers:{ Authorization:'Bearer ' + KEY.transcribe() }, body:fd });
+  const r = await fetch(API ? API + '/transcribe' : 'https://api.openai.com/v1/audio/transcriptions', {
+    method:'POST', headers:API ? {} : { Authorization:'Bearer ' + KEY.transcribe() }, body:fd });
   if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error?.message || r.status);
   const j = await r.json();
   return { text:(j.text || '').trim(), words:(j.words || []).map(w => ({ w:w.word, s:+w.start.toFixed(2), e:+w.end.toFixed(2) })) };
@@ -1624,7 +1626,25 @@ const DB = {
 const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
 const b64ToBlob = (s, type) => { const bin = atob(s), u = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type }); };
 DB.canWrite = () => true;                                  // the shared Firebase database is open to everyone
-const Backend = SHARED_DB ? DB : GH;                       // Firebase wins when configured, otherwise the GitHub repo
+
+/* The Alive server (server/worker.js): the same GitHub repo as the database, but the server holds the token,
+   so EVERY device can save with nothing configured. Same calls as GH and DB. */
+const SRV = {
+  label: () => 'the Alive server',
+  ready: () => true,
+  canWrite: () => true,
+  async check(r){ if(!r.ok){ const j = await r.json().catch(() => ({})); throw new Error('Server: ' + (j.error || r.status)); } return r; },
+  async list(){ return (await this.check(await fetch(API + '/entries', { cache:'no-store' }))).json(); },
+  async read(id){ return (await this.check(await fetch(API + '/entries/' + id, { cache:'no-store' }))).text(); },
+  async write(id, text, sha){
+    const r = await this.check(await fetch(API + '/entries/' + id, { method:'PUT', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ text, sha }) }));
+    return (await r.json()).sha;
+  },
+  async remove(id){ await this.check(await fetch(API + '/entries/' + id, { method:'DELETE' })); },
+  async putAudio(id, blob){ await this.check(await fetch(API + '/audio/' + id, { method:'PUT', headers:{ 'content-type':blob.type || 'audio/webm' }, body:blob })); },
+  async getAudio(id){ const r = await fetch(API + '/audio/' + id, { cache:'no-store' }); return r.ok ? r.blob() : null; }
+};
+const Backend = SHARED_DB ? DB : API ? SRV : GH;           // Firebase if configured, else the Alive server, else GitHub directly
 
 let syncing = false, syncAgain = false, syncTimer = 0;
 function setSync(msg){ const s = $('syncState'); if(s) s.textContent = msg; }
@@ -1680,7 +1700,7 @@ $('syncNow').onclick = () => {
   syncNow();
 };
 window.addEventListener('online', () => scheduleSync(500));
-if(SHARED_DB) setInterval(() => { if(!document.hidden) scheduleSync(0); }, 30000);   // everyone shares one database: pick up other people's entries
+if(SHARED_DB || API) setInterval(() => { if(!document.hidden) scheduleSync(0); }, 30000);   // one database for everyone: pick up other people's entries
 document.addEventListener('visibilitychange', () => { if(!document.hidden) scheduleSync(500); });
 
 /* ============ Boot ============ */

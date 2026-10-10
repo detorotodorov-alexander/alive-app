@@ -23,6 +23,29 @@ then open http://localhost:5173. On a phone you need HTTPS for the microphone (a
 - Time capsules, quiet-moment reminders, key points and tags per entry.
 - Shared sync: one Firebase database for everyone (see below), or an optional encrypted sync to your own GitHub repo.
 
+## The Alive server (works on every device, nothing to configure)
+
+`server/worker.js` is a Cloudflare Worker (free plan) between the site and OpenAI / GitHub. It keeps the two OpenAI keys and the
+GitHub token as **secrets**, so they are never in this repo or in the page, and it only accepts requests from this site.
+It also caps the model (`gpt-4o-mini`) and the reply size, so nobody can run up the bill with expensive calls.
+
+1. Create a free account at **dash.cloudflare.com**.
+2. *Workers & Pages* → *Create* → *Create Worker* → name it `alive-api` → *Deploy*.
+3. *Edit code* → replace everything with the contents of [`server/worker.js`](server/worker.js) → *Deploy*.
+4. *Settings* → *Variables and Secrets* → *Add*:
+   | Name | Type | Value |
+   |------|------|-------|
+   | `GITHUB_REPO` | Text | `detorotodorov-alexander/alive-app` |
+   | `ALLOWED_ORIGIN` | Text | `https://detorotodorov-alexander.github.io` |
+   | `OPENAI_TRANSCRIBE_KEY` | Secret | your Whisper key |
+   | `OPENAI_TEXT_KEY` | Secret | your text key |
+   | `GITHUB_TOKEN` | Secret | fine-grained token: only `alive-app`, *Contents: Read and write* |
+
+   Then *Deploy* again.
+5. Copy the Worker's address (`https://alive-api.<your-subdomain>.workers.dev`) into `apiURL` in [`config.js`](config.js) and commit.
+
+From the command line instead: `cd server && npx wrangler deploy`, then `npx wrangler secret put` for each secret.
+
 ## Demo setup (GitHub is the database)
 
 - **History:** `entries/` holds the past entries (a Spanish demo history, Aug–Oct 2026). Any device that opens the site loads them
