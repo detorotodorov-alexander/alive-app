@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#05060a">
 <title>Alive</title>
 <script src="config.js"></script>
+<script src="pipeline.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
@@ -317,6 +318,11 @@
   .trans.plain{color:#efe6cf}
   .dimp{color:#a99f84;font-style:italic}
   #readEcho{margin-top:5cqw}
+  .echolink .ehead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.4cqw}
+  .echolink .ehead em{font-size:3cqw;color:var(--dim);letter-spacing:.06em}
+  .echolink .eq{font-family:"Lora",Georgia,serif;font-size:3.7cqw;line-height:1.45;color:#e9dfc6}
+  .echolink .eq.now{margin-top:1.2cqw;color:#ffe9b0}
+  .echolink{display:block}
   .echo{font-size:4.4cqw;line-height:1.6;color:#f4ecd8;margin-bottom:3cqw}
   .echolink{display:flex;gap:3cqw;align-items:baseline;width:100%;text-align:left;background:rgba(243,236,220,.06);
     border:1px solid var(--line);border-radius:4cqw;padding:3cqw 4cqw;margin-bottom:2cqw;color:#e9dfc6;font-size:3.6cqw}
@@ -595,10 +601,10 @@ const KEY = {
   text: () => API ? 'server' : (CFG.openaiTextKey || settings.openaiText),
   shared: () => !!(API || CFG.openaiTranscribeKey || CFG.openaiTextKey)
 };
-async function llm(system, user, { json = false, max = 600 } = {}){   // one place for every text-processing call (OpenAI chat)
+async function llm(system, user, { json = false, max = 600, temp = .4 } = {}){   // one place for every text-processing call (OpenAI chat)
   const r = await fetch(API ? API + '/chat' : 'https://api.openai.com/v1/chat/completions', {
     method:'POST', headers:API ? { 'content-type':'application/json' } : { 'content-type':'application/json', Authorization:'Bearer ' + KEY.text() },
-    body:JSON.stringify({ model:MODELS.text, max_tokens:max, temperature:.4,
+    body:JSON.stringify({ model:MODELS.text, max_tokens:max, temperature:temp,
       ...(json ? { response_format:{ type:'json_object' } } : {}),
       messages:[{ role:'system', content:system }, { role:'user', content:user }] }) });
   if(!r.ok) throw new Error((await r.json().catch(() => ({}))).error?.message || r.status);
@@ -919,7 +925,7 @@ function ticksEl(e, cls){
 }
 /* What kind of record is it? Each type gets its own small gauge on the card, in the spirit of the widget reference:
    Mood (slider + marker), People (overlapping initials), Plan (tick gauge + marker), Work (segmented load bar), Voice (dots). */
-const TYPE_NAME = { mood:'Mood', people:'People', plan:'Plan', work:'Work', voice:'Voice' };
+const TYPE_NAME = { mood:'Mood', people:'People', plan:'Plan', work:'Work', voice:'Voice', note:'Note' };
 const FUTURE = /\b(want to|need to|going to|plan to|should|will|tomorrow|next)\b/i;
 const tagsOf = e => e.tags || (e.text ? localEntry(e.text).tags : EMPTY_TAGS());
 function moodScore(text){   // -1 heavy .. +1 light, from the same word lists the insights use
@@ -929,6 +935,7 @@ function moodScore(text){   // -1 heavy .. +1 light, from the same word lists th
 }
 function typeOf(e){
   if(!e.text) return 'voice';                                       // recorded but not transcribed yet
+  if(e.analysis && e.analysis.mode === 'note') return 'note';       // under 10 s: kept as is, never analysed
   const t = tagsOf(e);
   if(t.missions.length) return 'plan';
   if(t.people.length) return 'people';
@@ -1055,15 +1062,22 @@ function renderReader(){
   if(!e.text) box.append(el('p', 'dimp', e.audio ? 'This recording hasn\'t been transcribed yet.' : 'No text.'));
   else wordsOf(e).forEach((w, i) => { const s = el('span', 'tw', String(w.w).trim()); s.dataset.i = i; s.dataset.s = w.s; box.append(s, ' '); readWords.push(s); });
   const echo = $('readEcho'); echo.replaceChildren();               // how this entry connects to the past; links open those entries
-  if(e.echo && e.echo.reflection){
-    echo.append(el('h3', 'hub-h', 'Echoes from your past'), el('p', 'echo', e.echo.reflection));
-    for(const l of e.echo.links || []){
+  const REL = { repeats:'comes back', follows_up:'continues', progress:'a step on', contradicts:'different now' };
+  const an = e.analysis;
+  if(an && an.mode === 'note'){ echo.append(el('p', 'dimp', 'A short note: kept exactly as you said it, nothing added.')); }
+  else if(an && an.mode === 'full' && !an.relevant){ echo.append(el('p', 'dimp', 'Nothing explicit to highlight in this one. Nothing was added.')); }
+  else if(e.echo && e.echo.checked){
+    echo.append(el('h3', 'hub-h', 'Echoes from your past'));
+    if(!(e.echo.links || []).length) echo.append(el('p', 'dimp', 'Nothing in your past connects to this yet.'));
+    for(const l of e.echo.links || []){                              // what you said then and now, word for word; no prose in between
       const p = entryById(l.id); if(!p) continue;
       const b = el('button', 'echolink');
-      b.append(el('b', null, new Date(p.ts).toLocaleDateString([], { day:'numeric', month:'short' })), el('span', null, l.why));
+      const head = el('div', 'ehead'); head.append(el('b', null, new Date(p.ts).toLocaleDateString([], { day:'numeric', month:'short', year:'numeric' })), el('em', null, REL[l.relation] || l.relation));
+      b.append(head, el('div', 'eq', '«' + l.oldQuote + '»'), el('div', 'eq now', 'today: «' + l.newQuote + '»'));
       b.onclick = () => openReader(l.id); echo.append(b);
     }
-  }else if(e.text && KEY.text() && entries.length > 1){ echo.append(el('h3', 'hub-h', 'Echoes from your past'), el('p', 'dimp', 'Connecting this to your past…')); }
+    if(e.echo.question){ echo.append(el('h3', 'hub-h', 'A question'), el('p', 'echo', e.echo.question)); }
+  }else if(e.text && KEY.text() && an && an.relevant && entries.length > 1){ echo.append(el('h3', 'hub-h', 'Echoes from your past'), el('p', 'dimp', 'Looking for what connects…')); }
   const pts = $('readPts'); pts.replaceChildren();
   if(e.points && e.points.length){ pts.append(el('h3', 'hub-h', 'Key points')); const ul = el('ul', 'pts'); e.points.forEach(p => ul.append(el('li', null, p))); pts.append(ul); }
   if(e.tags){
@@ -1130,12 +1144,7 @@ async function transcribeEntry(id){   // the "posterior transcription": run on a
 
 /* ---- Key points + tags (people, projects, work, events, missions) ---- */
 const EMPTY_TAGS = () => ({ people:[], projects:[], work:[], events:[], missions:[] });
-async function aiEntry(text){
-  const txt = await llm('Read one voice-journal entry. Reply with ONLY JSON: {"points":[2-4 short key points, each under 14 words],"tags":{"people":[],"projects":[],"work":[],"events":[],"missions":[]}}. people = named people. projects = things the speaker is building or working on. work = job, employers, colleagues, work topics. events = specific happenings (a dinner, an interview). missions = things the speaker wants or intends to do or become. Max 3 tags per category, short (1-3 words), proper nouns capitalised, otherwise lowercase. Use the entry\'s own language.', text, { json:true, max:600 });
-  const j = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
-  const tags = EMPTY_TAGS(); for(const k in tags) tags[k] = (j.tags && Array.isArray(j.tags[k]) ? j.tags[k] : []).map(String).slice(0, 3);
-  return { points:(j.points || []).map(String).slice(0, 4), tags };
-}
+/* The analysis itself (gate, extraction with verbatim quotes, verification, retrieval, links) is pipeline.js; see PIPELINE.md. */
 function localEntry(text){
   const sents = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
   const tags = EMPTY_TAGS(), add = (k, v) => { if(v && !tags[k].includes(v) && tags[k].length < 3) tags[k].push(v); };
@@ -1151,36 +1160,21 @@ function localEntry(text){
   return { points:sents.slice(0, 3).map(s => s.length > 110 ? s.slice(0, 107) + '…' : s), tags };
 }
 async function analyzeEntry(id){
-  const e = entries.find(x => x.id === id); if(!e || !isOpen(e)) return;
-  let res = null;
-  if(KEY.text()){ try{ res = await aiEntry(e.text); }catch(err){ console.warn('entry analysis failed', err); toast('AI failed, using local analysis'); } }
-  res = res || localEntry(e.text);
-  const cur = entries.find(x => x.id === id); if(!cur) return;   // may have been deleted or replaced by a sync meanwhile
-  cur.points = res.points; cur.tags = res.tags; cur.u = Date.now();   // u = version, so sync re-uploads the enriched entry
+  const e = entryById(id); if(!e || !isOpen(e) || !e.text) return;
+  let patch = null;
+  if(KEY.text()){
+    try{ patch = await Pipeline.run(e, entries.filter(x => x.id !== id && isOpen(x) && x.text), llm); }
+    catch(err){ console.warn('analysis failed', err); toast('AI failed, using local analysis'); }
+  }
+  if(!patch){                                                       // no key or the call failed: same shape, built only from their own sentences
+    const g = Pipeline.gate(e);
+    if(g.mode === 'note') patch = { analysis:{ v:2, mode:'note', reason:g.reason }, points:[], evidence:[], tags:EMPTY_TAGS() };
+    else{ const l = localEntry(e.text); patch = { analysis:{ v:2, mode:'full', relevant:true, local:true }, points:l.points, evidence:[], tags:l.tags }; }
+  }
+  const cur = entryById(id); if(!cur) return;                       // may have been deleted or replaced by a sync meanwhile
+  Object.assign(cur, patch); cur.u = Date.now();                    // u = version, so sync re-uploads the enriched entry
   store.set('entries', entries); renderEntries();
   if(readerEl.classList.contains('on') && readId === id) renderReader();
-  if(KEY.text()) aiConnect(id);                                      // then relate it to everything said before
-}
-
-/* ---- Echoes: how a new entry connects to the person's past ----
-   The AI gets the new entry plus a compact version of every past entry (date, key points or the start of the text) and returns a
-   short reflection spoken to you, and the 1-4 past entries it draws on. Shown in the reader as "Echoes from your past". */
-async function aiConnect(id){
-  const e = entryById(id); if(!e || !e.text) return;
-  const past = entries.filter(x => x.id !== id && isOpen(x) && x.text).slice(0, 80);
-  if(!past.length) return;
-  const day = ts => new Date(ts).toISOString().slice(0, 10);
-  const history = past.map(x => `#${x.id} [${day(x.ts)}] ${(x.points && x.points.length ? x.points.join('; ') : x.text.slice(0, 300))}`).join('\n');
-  try{
-    const txt = await llm('You are Alive, a perceptive companion that remembers everything a person has told it. You get a NEW voice-journal entry and their PAST entries (each with an #id and date). Find how today connects to their past: recurring situations, people, feelings, loops they keep falling into, promises they made to themselves, progress they made. Reply with ONLY JSON: {"reflection": "2-3 sentences spoken to them as you, warm and specific, mentioning when things happened (e.g. three weeks ago)", "links": [{"id": number, "why": "under 14 words"}]} with the 1-4 most relevant past entries. Use the language of the new entry. Never diagnose.',
-      `NEW ENTRY [${day(e.ts)}]: ${e.text}\n\nPAST ENTRIES:\n${history}`, { json:true, max:500 });
-    const j = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
-    const cur = entryById(id); if(!cur) return;
-    cur.echo = { reflection:String(j.reflection || ''), links:(j.links || []).map(l => ({ id:+l.id, why:String(l.why || '') })).filter(l => entryById(l.id)).slice(0, 4) };
-    cur.u = Date.now();
-    store.set('entries', entries); renderEntries();
-    if(readerEl.classList.contains('on') && readId === id) renderReader();
-  }catch(err){ console.warn('connecting to the past failed', err); }
 }
 
 /* ---- Time capsules ---- */
@@ -1404,10 +1398,11 @@ $('viewBtn').onclick = () => { const v = phoneEl.dataset.view === 'time' ? 'net'
    alternating left and right. Colour = type of memory (same as the cards). Size = importance, in three tiers: a key point is
    more important when what it talks about keeps coming back in other memories, when the memory is long, and when it is the
    first thing that was said. The top fifth are large, the next 35% medium, the rest small. Tap a pill to open that memory. */
-const TYPE_TONE = { mood:'sage', people:'rose', plan:'cobalt', work:'ember', voice:'plum' };
+const TYPE_TONE = { mood:'sage', people:'rose', plan:'cobalt', work:'ember', voice:'plum', note:'plum' };
 const TL_TYPES = ['mood', 'people', 'plan', 'work'];
 const tlOff = new Set();                                         // types switched off in the legend
-const keypointsOf = e => (e.points && e.points.length) ? e.points : (e.text ? localEntry(e.text).points : []);
+// An analysed entry has exactly the points it was given (possibly none). Only older entries, never analysed, fall back to their first sentences.
+const keypointsOf = e => e.analysis ? (e.points || []) : (e.points && e.points.length) ? e.points : (e.text ? localEntry(e.text).points : []);
 const sigWords = s => (s.toLowerCase().match(/[a-zà-ÿ]{5,}/g) || []).filter(w => !STOP.has(w));
 function buildTimeline(){
   const open = entries.filter(e => isOpen(e) && e.text).sort((a, b) => b.ts - a.ts);

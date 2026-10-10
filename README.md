@@ -83,6 +83,7 @@ Everything is online in the shared database: entries **and their audio** (24 kbp
 
 ## Project notes
 
+- `PIPELINE.md` explains how text is processed so nothing is invented (gate, extraction with verbatim quotes, verification, links).
 - `REMOVED.md` lists what has been hidden or removed from the UI and how to bring it back.
 - `archive/v1-voice-journal/` is a snapshot of the app before the latest redesign.
 - Without `config.js` keys, the app falls back to the browser's speech recognition and local text analysis; keys typed in Settings still work for local testing.
