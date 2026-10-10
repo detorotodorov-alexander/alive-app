@@ -134,11 +134,17 @@
     'Reply with ONLY JSON: {"links":[{"id":<past entry number>,"relation":"repeats|follows_up|progress|contradicts","newQuote":"...","oldQuote":"..."}],"question":"..."}. ' +
     'question: optional, ONE question to the person that includes a verbatim fragment (at least 3 words) of the NEW entry between « and », and ends with "?". It must ask, not state anything about them. The app is about being alive rather than merely existing; you may use that only to choose which of their own words to ask about. Otherwise use an empty string.';
 
-  async function connect(entry, cands, llm){
-    if(!cands.length) return { links:[], question:'', checked:true };
+  // Step 3 (find patterns): the model PROPOSES links. Nothing it says is shown until step 4 has checked it.
+  async function propose(entry, cands, llm){
+    if(!cands.length) return { links:[], question:'' };
     const user = 'NEW ENTRY [' + day(entry.ts) + ']:\n' + entry.text + '\n\nPAST ENTRIES:\n' +
       cands.map(p => '#' + p.id + ' [' + day(p.ts) + ']: ' + p.text.slice(0, 800)).join('\n\n');
-    const j = parse(await llm(CONNECT_SYSTEM + ' Answer in ' + detectLang(entry.text) + '.', user, { json:true, max:600, temp:.1 }));
+    return parse(await llm(CONNECT_SYSTEM + ' Answer in ' + detectLang(entry.text) + '.', user, { json:true, max:600, temp:.1 }));
+  }
+
+  // Step 4 (review the patterns): code, not a model. A link survives only if both quotes really exist in the two entries.
+  function review(entry, cands, j){
+    j = j || {};
     const byId = new Map(cands.map(p => [p.id, p])), links = [], seen = new Set();
     for(const l of (Array.isArray(j.links) ? j.links : [])){
       const p = byId.get(+l.id);
@@ -154,6 +160,25 @@
     return { links, question, checked:true };
   }
 
+  async function connect(entry, cands, llm){
+    if(!cands.length) return { links:[], question:'', checked:true };
+    return review(entry, cands, await propose(entry, cands, llm));
+  }
+
+  /* ---------- 5. summary ---------- */
+  // At most two sentences, only what was said. If the model brings in anything the transcript doesn't support, we fall back to the verified key points.
+  const SUMMARY_SYSTEM = 'Summarise ONE voice-journal transcript in at most 2 short sentences, in the same language as the transcript. Use ONLY what the speaker explicitly says, as much as possible in their own words. ' +
+    'Do not interpret, infer causes, generalise, add advice, or mention anything that was not said. Reply with ONLY JSON: {"summary":"..."}.';
+  async function summarize(entry, points, llm){
+    if(gate(entry).mode === 'note') return { text:'', source:'none' };
+    try{
+      const j = parse(await llm(SUMMARY_SYSTEM + ' Write it in ' + detectLang(entry.text) + '.', entry.text, { json:true, max:200, temp:.1 }));
+      const t = String(j.summary || '').trim();
+      if(t && t.length <= 400 && supported(t, entry.text)) return { text:t, source:'model' };
+    }catch{}
+    return points && points.length ? { text:points.join('. ') + '.', source:'points' } : { text:'', source:'none' };
+  }
+
   /* ---------- whole pipeline ---------- */
   async function run(entry, past, llm, vecs){
     const patch = await analyze(entry, llm);
@@ -163,5 +188,5 @@
     return patch;
   }
 
-  return { run, analyze, extract, candidates, connect, gate, grounded, supported, norm, cosine, detectLang, MIN_SECONDS, MIN_WORDS, RELATIONS };
+  return { run, analyze, extract, candidates, propose, review, connect, summarize, gate, grounded, supported, norm, cosine, detectLang, MIN_SECONDS, MIN_WORDS, RELATIONS };
 });

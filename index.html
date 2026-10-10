@@ -259,6 +259,7 @@
   .tile.hasimg::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to bottom,rgba(2,8,14,.55),rgba(2,8,14,.35) 40%,rgba(2,8,14,.8))}
   .tile .td{font-size:2.3cqw;letter-spacing:.12em;text-transform:uppercase;font-weight:600;opacity:.9}
   .tile .tx{font:3cqw/1.32 "Lora",Georgia,serif;display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden;margin:1.4cqw 0;text-shadow:0 1px 6px rgba(0,0,0,.35)}
+  .tile .tx.busy{animation:blink 1.4s ease-in-out infinite}
   .tile.wide .tx{-webkit-line-clamp:3;font-size:3.4cqw}
   .tile .tm{font-size:2.5cqw;opacity:.88;display:flex;justify-content:space-between;gap:1cqw}
   .tile.sage{--c1:#1fd08a;--c2:#07744f;--blob:#012a1f} .tile.rose{--c1:#3fa9ff;--c2:#0b55b8;--blob:#01204a} .tile.cobalt{--c1:#3563ff;--c2:#0f1f9c;--blob:#02030a}
@@ -352,6 +353,12 @@
   #readPts .pts{color:#e0eff1}
   .rtags{margin-top:1cqw}
   .rbtns{margin-top:5cqw}
+  .rproc{margin:3cqw 0 1cqw;padding:3cqw 4cqw;border-radius:5cqw;background:rgba(6,19,29,.5);border:1px solid var(--line);font:3.3cqw system-ui,sans-serif}
+  .pstep{display:flex;align-items:center;gap:2.4cqw;padding:.9cqw 0;color:var(--dim)}
+  .pstep i{flex:none;width:3.4cqw;height:3.4cqw;border-radius:50%;border:.5cqw solid currentColor}
+  .pstep.done{color:#bcd6dd} .pstep.done i{background:#7fb6ff;border-color:#7fb6ff}
+  .pstep.cur{color:#fff} .pstep.cur i{border-color:rgba(255,255,255,.3);border-top-color:#fff;animation:spin .9s linear infinite}
+  .pstep em{margin-left:auto;font-style:normal;color:var(--dim);font-size:2.9cqw}
   .rimgs{display:flex;gap:2.4cqw;margin:3cqw 0 1cqw;overflow-x:auto;scrollbar-width:none}
   .rimgs::-webkit-scrollbar{display:none}
   .rimg{position:relative;flex:none;width:26cqw;height:26cqw;border-radius:6cqw;overflow:hidden;border:1px solid var(--line);background:rgba(6,19,29,.6)}
@@ -383,13 +390,6 @@
      Colour = type of memory (same palette as the cards). Size = importance in three tiers (large, medium, small). ===== */
   #timeline{position:absolute;left:0;right:0;z-index:2;top:calc(env(safe-area-inset-top) + 59cqw);bottom:30cqw;
     display:flex;flex-direction:column;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  #tlLegend{flex:none;display:flex;justify-content:flex-start;align-items:center;gap:1.8cqw;padding:0 6cqw 3cqw;flex-wrap:wrap}
-  #tlLegend button{display:flex;align-items:center;gap:1.4cqw;background:linear-gradient(165deg,var(--c1),var(--c2));border:0;color:#fff;
-    border-radius:99px;padding:1.5cqw 3.2cqw;font-size:3cqw;letter-spacing:.04em;transition:opacity .2s;box-shadow:0 1cqw 3cqw rgba(0,0,0,.4)}
-  #tlLegend button i{width:2.2cqw;height:2.2cqw;border-radius:50%;background:#fff;opacity:.85}
-  #tlLegend button.off{opacity:.38}
-  #tlLegend .sizes{display:flex;align-items:center;gap:1cqw;margin-left:1cqw;color:var(--dim);font-size:2.7cqw}
-  #tlLegend .sizes b{display:block;border-radius:50%;background:var(--dim)}
   #tlScroll{flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:0 4cqw;
     -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 7%,#000 90%,transparent 100%);
             mask-image:linear-gradient(to bottom,transparent 0,#000 7%,#000 90%,transparent 100%)}
@@ -412,9 +412,9 @@
     background:radial-gradient(ellipse 70% 60% at 30% 80%,var(--blob) 0%,transparent 100%),linear-gradient(165deg,var(--c1),var(--c2))}
   .tlside.l .kp{rotate:-1.2deg} .tlside.r .kp{rotate:1.2deg}
   .kp:active{scale:.97}
-  .kp.t1{font-size:4.1cqw;font-weight:500;padding:4.2cqw 4.6cqw;border-radius:9cqw}
-  .kp.t2{font-size:3.4cqw;padding:3cqw 3.8cqw;border-radius:7cqw}
-  .kp.t3{font-size:2.9cqw;opacity:.92;padding:2cqw 3cqw;border-radius:5cqw}
+  .kp{font-size:3.5cqw;padding:3cqw 3.9cqw;border-radius:7cqw}
+  .kp.pending{animation:blink 1.4s ease-in-out infinite}
+  .kp.plain{opacity:.92}
   .sage{--blob:#012a1f} .rose{--blob:#01204a} .cobalt{--blob:#02030a} .ember{--blob:#0d38c8} .plum{--blob:#021a24}
   .sage{--c1:#1fd08a;--c2:#07744f} .rose{--c1:#3fa9ff;--c2:#0b55b8} .cobalt{--c1:#3563ff;--c2:#0f1f9c}
   .ember{--c1:#ffb42e;--c2:#f0661c} .plum{--c1:#18c4bd;--c2:#07616d}
@@ -607,7 +607,6 @@
     <h2 class="tlh" id="tlTitle">Timeline</h2>
 
     <div id="timeline" aria-label="Timeline">
-      <div id="tlLegend"></div>
       <div id="tlScroll"><div id="tlList"></div></div>
     </div>
     </section>
@@ -673,10 +672,12 @@
     <div class="hub-scroll">
       <div class="hub-title" id="readTitle"></div>
       <div class="hub-sub" id="readSub"></div>
+      <div class="rproc" id="readProc" hidden></div>
       <div class="rimgs" id="readImgs"></div>
       <input type="file" id="imgPick" accept="image/*" hidden>
       <div id="readTicks"></div>
       <div class="rctl"><button class="wplay" id="readPlay" aria-label="Play">▶</button><span id="readTime">0:00</span></div>
+      <div id="readSummary"></div>
       <h3 class="hub-h">Transcript</h3>
       <div class="trans" id="readText"></div>
       <div id="readEcho"></div>
@@ -955,7 +956,6 @@ const S = { level:0, rec:0, proc:0, targetLevel:0, recT:0, procT:0 };
 
 /* ============ Recorder ============ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rx = null, rxTimer = 0;                                       // rx: a recording being transcribed ({ t0 })
 const R = { on:false, mode:null, stream:null, mr:null, chunks:[], ctx:null, an:null, raf:0, rec:null, text:'', t0:0, tick:0, levels:[], real:false };
 const ANDROID = /Android/i.test(navigator.userAgent);   // Android Chrome can't share the mic between SpeechRecognition and getUserMedia
 
@@ -1049,41 +1049,34 @@ function cleanup(){
 async function stopRecording(){
   const dur = Math.round((Date.now() - R.t0) / 1000);
   R.on = false;  // before stop(), so SpeechRecognition.onend doesn't restart
-  $('rec').disabled = true; S.procT = 1; setStatus('Transcribing');
-  rx = { t0:Date.now() }; paintThink(); go('home'); renderHome(); clearInterval(rxTimer); rxTimer = setInterval(paintRx, 500);   // back to the app: the last-recording card shows the transcription
-  let text = '', words = null, blob = null;
+  $('rec').disabled = true; setStatus('Saving');
+  let text = '', blob = null;
   const wave = makeWave(R.levels);
   const grabBlob = () => (R.mr && R.mr.state !== 'inactive')
     ? new Promise(res => { R.mr.onstop = () => res(new Blob(R.chunks, { type:R.mr.mimeType })); R.mr.stop(); }) : null;
   try{
     if(R.mode === 'whisper'){
       blob = await grabBlob(); cleanup();
-      const r = await transcribe(blob); text = r.text; words = r.words;
     }else{
       const done = new Promise(res => { R.rec.onend = res; setTimeout(res, 1500); });
       R.rec.stop(); await done;
       blob = await grabBlob(); cleanup();
       text = R.text.trim() || $('live').textContent.trim();
     }
-  }catch(err){ console.error(err); toast('Transcription failed: ' + (err.message || err)); cleanup(); }
-  S.procT = 0; $('rec').disabled = false; setStatus('Ready'); clearInterval(rxTimer); rx = null;
-  if(text || blob){                                         // keep the audio even if transcription failed; it can be transcribed later
-    const entry = { id:Date.now(), ts:Date.now(), dur, text };
-    if(blob){ entry.audio = true; entry.audioExt = audioExt(blob.type); AudioStore.put(entry.id, blob); }
-    if(wave) entry.wave = wave;
-    if(words && words.length) entry.words = words;
-    const cap = capsuleUntil();
-    if(cap) entry.capsule = cap;
-    entries.unshift(entry);
-    store.set('entries', entries); renderEntries();
-    setLive(cap ? '' : text);
-    toast(cap ? 'Sealed until ' + new Date(cap).toLocaleDateString([], { year:'numeric', month:'short', day:'numeric' }) : 'Saved to journal');
-    resetCapsule();
-    if(!cap && text) analyzeEntry(entry.id);               // sealed entries stay unread until they open
-  }else{
-    renderHome();
-    if(!$('toast').classList.contains('on')){ toast('Nothing was heard'); setLive(''); }
-  }
+  }catch(err){ console.error(err); toast('Recording failed: ' + (err.message || err)); cleanup(); }
+  $('rec').disabled = false; setStatus('Ready');
+  if(!text && !blob){ go('home'); toast('Nothing was heard'); setLive(''); return; }
+  /* The card is created and saved right now, then the pipeline fills it in step by step (see processEntry). */
+  const entry = { id:Date.now(), ts:Date.now(), dur, text, proc:{ t0:Date.now(), t:Date.now(), stage:text ? 'bullets' : 'transcribe' } };
+  if(blob){ entry.audio = true; entry.audioExt = audioExt(blob.type); AudioStore.put(entry.id, blob); }
+  if(wave) entry.wave = wave;
+  const cap = capsuleUntil();
+  if(cap) entry.capsule = cap;
+  entries.unshift(entry);
+  store.set('entries', entries); renderEntries();
+  setLive(''); resetCapsule(); go('home');
+  toast(cap ? 'Sealed until ' + new Date(cap).toLocaleDateString([], { year:'numeric', month:'short', day:'numeric' }) : 'Saved. Processing…');
+  processEntry(entry.id, blob);
 }
 
 async function transcribe(blob){
@@ -1208,7 +1201,7 @@ function tileEl(e){
   const t = el('button', 'tile ' + (sealed ? 'plum' : toneOf(e)) + (wide ? ' wide' : '') + (sealed ? ' sealed' : '')); t.dataset.id = e.id;
   if(!sealed && e.images && e.images[0]){ const im = el('img', 'timg'); im.src = e.images[0]; im.alt = ''; t.append(im); t.classList.add('hasimg'); }
   t.append(el('div', 'td', d.toLocaleDateString([], { day:'numeric', month:'short' })));
-  t.append(el('div', 'tx', sealed ? '⏳' : e.text ? excerpt(e.text, wide ? 160 : 190) : 'Not transcribed yet'));
+  t.append(el('div', 'tx' + (e.proc && !e.text ? ' busy' : ''), sealed ? '⏳' : e.text ? excerpt(e.text, wide ? 160 : 190) : e.proc ? STAGE_LABEL[e.proc.stage] + '…' : 'Not transcribed yet'));
   const m = el('div', 'tm'); m.append(el('span', null, sealed ? 'until ' + new Date(e.capsule).toLocaleDateString([], { day:'numeric', month:'short', year:'numeric' }) : e.dur ? fmtClock(e.dur) : ''),
     el('span', null, d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })));
   t.append(m);
@@ -1292,6 +1285,16 @@ function shrinkImage(file, max = 640, q = .62){
     im.src = url;
   });
 }
+function paintProc(e){                                              // the five steps, with the one that is running
+  const box = $('readProc'); box.hidden = !e.proc; box.replaceChildren(); if(!e.proc) return;
+  const at = STAGES.indexOf(e.proc.stage);
+  STAGES.forEach((s, i) => {
+    const row = el('div', 'pstep ' + (i < at ? 'done' : i === at ? 'cur' : 'todo')); row.append(el('i'), el('span', null, STAGE_LABEL[s]));
+    if(i === at && s === 'patterns' && e.echo && e.echo.looked != null) row.append(el('em', null, e.echo.looked + ' related'));
+    if(i === at && s === 'review' && e.echo && e.echo.proposed != null) row.append(el('em', null, e.echo.proposed + ' to check'));
+    box.append(row);
+  });
+}
 function paintImages(e){
   const box = $('readImgs'); box.replaceChildren();
   (e.images || []).forEach((src, i) => {
@@ -1312,10 +1315,12 @@ function renderReader(){
   $('readTitle').textContent = d.toLocaleDateString([], { weekday:'long', day:'numeric', month:'long' });
   $('readSub').textContent = [d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), e.dur ? fmtClock(e.dur) + ' min' : '', nWords ? nWords + ' words' : '', e.audio ? '' : 'text only'].filter(Boolean).join(' · ');
   $('readTicks').replaceChildren(ticksEl(e, 'big'));
-  paintImages(e);
+  paintImages(e); paintProc(e);
+  const sm = $('readSummary'); sm.replaceChildren();
+  if(e.summary){ sm.append(el('h3', 'hub-h', 'Summary'), el('p', 'echo', e.summary)); }
   const box = $('readText'); box.replaceChildren(); readWords = []; readIdx = -1;
   box.classList.toggle('plain', !e.audio);
-  if(!e.text) box.append(el('p', 'dimp', e.audio ? 'This recording hasn\'t been transcribed yet.' : 'No text.'));
+  if(!e.text) box.append(el('p', 'dimp', e.proc ? 'Transcribing…' : e.audio ? 'This recording hasn\'t been transcribed yet.' : 'No text.'));
   else wordsOf(e).forEach((w, i) => { const s = el('span', 'tw', String(w.w).trim()); s.dataset.i = i; s.dataset.s = w.s; box.append(s, ' '); readWords.push(s); });
   const echo = $('readEcho'); echo.replaceChildren();               // how this entry connects to the past; links open those entries
   const REL = { repeats:'comes back', follows_up:'continues', progress:'a step on', contradicts:'different now' };
@@ -1347,7 +1352,8 @@ function renderReader(){
   }
   const act = $('readAction');
   act.hidden = false;
-  if(e.audio && !e.text){ act.textContent = 'Transcribe this recording'; act.onclick = () => transcribeEntry(e.id); }
+  if(e.proc) act.hidden = true;
+  else if(e.audio && !e.text){ act.textContent = 'Transcribe this recording'; act.onclick = () => transcribeEntry(e.id); }
   else if(e.text && !e.points){ act.textContent = 'Find key points'; act.onclick = async () => { act.textContent = 'Reading…'; await analyzeEntry(e.id); renderReader(); }; }
   else act.hidden = true;
   $('readPlay').disabled = !e.audio;
@@ -1388,14 +1394,8 @@ $('readDelete').onclick = () => {
   store.set('entries', entries); renderEntries(); closeHub();
 };
 async function transcribeEntry(id){   // the "posterior transcription": run on a saved recording whenever you like
-  const e = entryById(id), blob = await AudioStore.get(id);
-  if(!e || !blob){ toast(Backend.ready() ? 'Couldn\'t load this recording' : 'This recording isn\'t on this device'); return; }
   if(!KEY.transcribe()){ toast('No transcription key set (see config.js)'); return; }
-  $('readAction').textContent = 'Transcribing…';
-  try{
-    const r = await transcribe(blob); e.text = r.text; if(r.words.length) e.words = r.words; e.u = Date.now();
-    store.set('entries', entries); renderEntries(); renderReader(); if(r.text) analyzeEntry(id);
-  }catch(err){ toast('Transcription failed: ' + (err.message || err)); renderReader(); }
+  const en = entryById(id); if(en) processEntry(id);
 }
 
 /* ---- Key points + tags (people, projects, work, events, missions) ---- */
@@ -1437,26 +1437,79 @@ async function ensureEmbeddings(list){
   return vecs;
 }
 
-async function analyzeEntry(id){
-  const e = entryById(id); if(!e || !isOpen(e) || !e.text) return;
-  let patch = null;
-  if(KEY.text()){
-    try{
-      const past = entries.filter(x => x.id !== id && isOpen(x) && x.text);
-      let vecs = null; try{ vecs = await ensureEmbeddings([e, ...past]); }catch(err){ console.warn('no embeddings, using words only', err); }   // optional: the pipeline works without
-      patch = await Pipeline.run(e, past, llm, vecs);
+/* ---- The pipeline, one step at a time ----
+   1 transcribe  2 key points  3 find patterns  4 review the patterns  5 summary.
+   The card is saved before step 1; every step writes what it found into the entry as soon as it has it, so the timeline, the home card and
+   the reader fill in while it runs. `proc` says which step is running; it is removed when the last one ends. A step that fails never loses the
+   recording: the entry keeps whatever the earlier steps produced. */
+const STAGES = ['transcribe', 'bullets', 'patterns', 'review', 'summary'];
+const STAGE_LABEL = { transcribe:'Transcribing', bullets:'Finding key points', patterns:'Looking for patterns', review:'Checking the patterns', summary:'Writing the summary' };
+const procRunning = new Set();
+function touch(en, patch){                                          // save a step's result: local store, sync, and every screen that shows it
+  Object.assign(en, patch); en.u = Date.now(); store.set('entries', entries); renderEntries();
+  if(readerEl.classList.contains('on') && readId === en.id) renderReader();
+}
+const enter = (en, stage) => touch(en, { proc:{ t0:(en.proc && en.proc.t0) || Date.now(), t:Date.now(), stage } });
+const finish = en => { delete en.proc; touch(en, {}); };
+async function processEntry(id, blob){
+  if(!entryById(id) || procRunning.has(id)) return;
+  procRunning.add(id);
+  const live = () => entryById(id);                                 // may have been deleted or replaced by a sync meanwhile
+  let e = live(), stage = '';
+  try{
+    // 1. transcribe
+    if(!e.text && (blob || e.audio)){
+      stage = 'transcribe'; enter(e, 'transcribe');
+      const b = blob || await AudioStore.get(id); if(!b) throw new Error('the recording is not available on this device');
+      const r = await transcribe(b); e = live(); if(!e) return;
+      touch(e, Object.assign({ text:r.text }, r.words.length ? { words:r.words } : {}));
     }
-    catch(err){ console.warn('analysis failed', err); toast('AI failed, using local analysis'); }
-  }
-  if(!patch){                                                       // no key or the call failed: same shape, built only from their own sentences
-    const g = Pipeline.gate(e);
+    e = live(); if(!e) return;
+    if(!e.text || !isOpen(e)) return finish(e);                      // nothing said, or a sealed capsule: stays unread until it opens
+    const haveKey = !!KEY.text(), past = entries.filter(x => x.id !== id && isOpen(x) && x.text);
+
+    // 2. key points (and tags): only what was said, each with a verbatim quote that code checks
+    stage = 'bullets'; enter(e, 'bullets');
+    let patch = null; const g = Pipeline.gate(e);
     if(g.mode === 'note') patch = { analysis:{ v:2, mode:'note', reason:g.reason }, points:[], evidence:[], tags:EMPTY_TAGS() };
-    else{ const l = localEntry(e.text); patch = { analysis:{ v:2, mode:'full', relevant:true, local:true }, points:l.points, evidence:[], tags:l.tags }; }
-  }
-  const cur = entryById(id); if(!cur) return;                       // may have been deleted or replaced by a sync meanwhile
-  Object.assign(cur, patch); cur.u = Date.now();                    // u = version, so sync re-uploads the enriched entry
-  store.set('entries', entries); renderEntries();
-  if(readerEl.classList.contains('on') && readId === id) renderReader();
+    else if(haveKey){
+      try{ const x = await Pipeline.extract(e.text, llm);
+        patch = { analysis:{ v:2, mode:'full', relevant:x.items.length > 0, dropped:x.dropped }, points:x.items.map(i => i.point), evidence:x.items.map(({ kind, quote }) => ({ kind, quote })), tags:x.tags }; }
+      catch(err){ console.warn('key points failed', err); toast('AI failed, using local analysis'); }
+    }
+    if(!patch){ const l = localEntry(e.text); patch = { analysis:{ v:2, mode:'full', relevant:true, local:true }, points:l.points, evidence:[], tags:l.tags }; }
+    e = live(); if(!e) return; touch(e, patch);
+    const an = e.analysis;
+
+    // 3 + 4. patterns: the model proposes links to your past, then code checks every quote
+    if(haveKey && an.mode === 'full' && an.relevant && !an.local){
+      stage = 'patterns'; enter(e, 'patterns');
+      let vecs = null; try{ vecs = await ensureEmbeddings([e, ...past]); }catch(err){ console.warn('no embeddings, using words only', err); }
+      const cands = Pipeline.candidates(e, past, 6, vecs);
+      let raw = null; try{ raw = await Pipeline.propose(e, cands, llm); }catch(err){ console.warn('patterns failed', err); }
+      e = live(); if(!e) return;
+      const proposed = raw && Array.isArray(raw.links) ? raw.links.length : 0;
+      touch(e, { echo:{ links:[], question:'', checked:false, looked:cands.length, proposed } });
+      stage = 'review'; enter(e, 'review');
+      const rv = raw ? Pipeline.review(e, cands, raw) : { links:[], question:'', checked:true };
+      touch(e, { echo:Object.assign(rv, { looked:cands.length, proposed }) });
+    }
+
+    // 5. summary: two sentences at most, built from what was said; if the model adds anything, the verified key points are used instead
+    if(haveKey && an.mode === 'full' && an.relevant){
+      stage = 'summary'; enter(e, 'summary');
+      const sm = await Pipeline.summarize(e, e.points, llm); e = live(); if(!e) return;
+      if(sm.text) touch(e, { summary:sm.text, summarySource:sm.source });
+    }
+    e = live(); if(e) finish(e);
+  }catch(err){
+    console.error('processing failed at ' + stage, err); toast((STAGE_LABEL[stage] || 'Processing') + ' failed: ' + (err.message || err));
+    const cur = live(); if(cur) finish(cur);
+  }finally{ procRunning.delete(id); renderHome(); }
+}
+const analyzeEntry = id => processEntry(id);                         // "Find key points", capsules that open, a finished transcription
+async function resumeProcessing(){                                  // the app was closed mid-way: pick up where the entry says it stopped
+  for(const en of [...entries]) if(en.proc && !procRunning.has(en.id) && Date.now() - (en.proc.t || 0) > 90000) await processEntry(en.id);
 }
 
 /* ---- Time capsules ---- */
@@ -1671,7 +1724,6 @@ $('cardTl').onclick = () => go('time');
 /* Think aloud: starts recording by itself and opens the recording page right away; if the mic can't start we go back home. */
 async function beginThink(){
   if(R.on){ go('rec'); return; }
-  if(rx){ toast('Still transcribing your last recording…'); return; }
   go('rec'); $('recQ').hidden = true;
   phoneEl.classList.add('recording'); setStatus('Recording'); $('rec').classList.add('on'); $('timer').textContent = '00:00';   // the page already shows it is recording
   await startRecording();
@@ -1684,7 +1736,8 @@ function paintThink(){
   $('thinkLbl').textContent = R.on ? 'Recording' : 'Think aloud'; $('thinkTime').hidden = !R.on;
   c.setAttribute('aria-label', R.on ? 'Recording. Tap to open the recording page' : 'Think aloud: start recording');
 }
-function paintRx(){ if(rx) $('featTime').textContent = fmtClock((Date.now() - rx.t0) / 1000); }
+let procTick = 0;                                                  // repaints the elapsed time on the home card while something is being processed
+function paintRx(){ const p = entries.find(x => x.proc); if(p) $('featTime').textContent = fmtClock((Date.now() - (p.proc.t0 || p.ts)) / 1000); }
 
 /* While recording: the orb breathes with your voice, the screen stays awake, and if the phone cuts the mic while you were away we save what we got. */
 let orbRaf = 0;
@@ -1772,93 +1825,63 @@ $('askBtn').onclick = () => {
    more important when what it talks about keeps coming back in other memories, when the memory is long, and when it is the
    first thing that was said. The top fifth are large, the next 35% medium, the rest small. Tap a pill to open that memory. */
 const TYPE_TONE = { mood:'sage', people:'rose', plan:'cobalt', work:'ember', voice:'plum', note:'plum' };
-const TL_TYPES = ['mood', 'people', 'plan', 'work'];
-const tlOff = new Set();                                         // types switched off in the legend
-// An analysed entry has exactly the points it was given (possibly none). Only older entries, never analysed, fall back to their first sentences.
-const keypointsOf = e => e.analysis ? (e.points || []) : (e.points && e.points.length) ? e.points : (e.text ? localEntry(e.text).points : []);
+// An analysed entry has exactly the points it was given (possibly none); one still being analysed has none yet; only older entries fall back to their first sentences.
+const keypointsOf = en => en.analysis ? (en.points || []) : en.proc ? [] : (en.points && en.points.length) ? en.points : (en.text ? localEntry(en.text).points : []);
+function excerpt(t, n){ t = t.replace(/\s+/g, ' ').trim(); if(t.length <= n) return t; const cut = t.slice(0, n), sp = cut.lastIndexOf(' '); return cut.slice(0, sp > n * .6 ? sp : n) + '…'; }
 const sigWords = s => (s.toLowerCase().match(/[a-zà-ÿ]{5,}/g) || []).filter(w => !STOP.has(w));
-function scoredKeypoints(open){            // every key point with its importance score and tier (1 large, 2 medium, 3 small)
-  const toks = new Map(open.map(e => [e.id, new Set(sigWords(keypointsOf(e).join(' ') + ' ' + e.text))]));
-  const items = [];
-  for(const e of open){
-    keypointsOf(e).forEach((kp, i) => {
-      const mine = new Set(sigWords(kp)); let recurs = 0;
-      for(const o of open){ if(o.id === e.id) continue; const t = toks.get(o.id); for(const w of mine) if(t.has(w)){ recurs++; break; } }
-      const d = e.dur || 0;
-      items.push({ e, kp, score:recurs + (d >= 600 ? 2 : d >= 120 ? 1 : 0) + (i === 0 ? .5 : 0) });
-    });
-  }
-  items.slice().sort((a, b) => b.score - a.score).forEach((it, r, all) => { it.tier = r < all.length * .2 ? 1 : r < all.length * .55 ? 2 : 3; });
-  return items;
-}
+/* ---- Timeline ----
+   A spine down the middle, newest on top. EVERY open memory is on it the moment it is saved: a dot, and next to it its key points as pills
+   (alternating left and right). Until key points exist the pill shows the first words of what was said, or the step that is running.
+   Colour = type of memory. Tap a pill to open that memory. */
 function buildTimeline(){
-  const open = entries.filter(e => isOpen(e) && e.text).sort((a, b) => b.ts - a.ts);
-  const items = scoredKeypoints(open);
-
-  const leg = $('tlLegend'); leg.replaceChildren();
-  for(const t of TL_TYPES){
-    const b = el('button', TYPE_TONE[t] + (tlOff.has(t) ? ' off' : '')); b.append(el('i'), document.createTextNode(TYPE_NAME[t]));
-    b.onclick = () => { tlOff.has(t) ? tlOff.delete(t) : tlOff.add(t); buildTimeline(); }; leg.append(b);
-  }
-  const sz = el('span', 'sizes'); sz.append(document.createTextNode('size = importance'));
-  [1.2, 1.9, 2.8].forEach(px => { const b = el('b'); b.style.width = b.style.height = px + 'cqw'; sz.append(b); }); leg.append(sz);
-
+  const open = entries.filter(en => isOpen(en) && (en.text || en.proc)).sort((a, b) => b.ts - a.ts);
   const box = $('tlList'); box.replaceChildren();
   let month = '', side = 0;
-  for(const e of open){
-    const type = typeOf(e); if(tlOff.has(type)) continue;
-    const mine = items.filter(it => it.e === e); if(!mine.length) continue;
-    const d = new Date(e.ts), m = d.toLocaleDateString([], { month:'long', year:'numeric' });
+  for(const en of open){
+    const d = new Date(en.ts), m = d.toLocaleDateString([], { month:'long', year:'numeric' });
     if(m !== month){ month = m; const h = el('div', 'tlmonth'); h.append(el('span', null, m)); box.append(h); }
-    const tone = TYPE_TONE[type], left = side++ % 2 === 0;
+    const tone = TYPE_TONE[typeOf(en)], left = side++ % 2 === 0, pts = keypointsOf(en);
     const row = el('div', 'tlrow'), pills = el('div', 'tlside ' + (left ? 'l' : 'r')), date = el('div', 'tlside ' + (left ? 'r' : 'l'));
-    for(const it of mine){
-      const p = el('button', 'kp t' + it.tier + ' ' + tone, it.kp); p.title = TYPE_NAME[type];
-      p.onclick = () => openReader(e.id); pills.append(p);
-    }
+    const mk = (txt, extra) => { const p = el('button', 'kp ' + tone + (extra ? ' ' + extra : ''), txt); p.onclick = () => openReader(en.id); pills.append(p); };
+    if(pts.length) pts.forEach(kp => mk(kp));
+    else if(en.text) mk(excerpt(en.text, 80), en.proc ? 'pending' : 'plain');
+    else mk(STAGE_LABEL[en.proc.stage] + '…', 'pending');
     date.append(el('div', 'tldate', d.toLocaleDateString([], { day:'numeric', month:'short' })));
-    if(e.images && e.images[0]){ const th = el('img', 'tlthumb'); th.src = e.images[0]; th.alt = ''; date.append(th); }
+    if(en.images && en.images[0]){ const th = el('img', 'tlthumb'); th.src = en.images[0]; th.alt = ''; date.append(th); }
     const mid = el('div', 'tlmid'); mid.append(el('i', 'tldot ' + tone));
     row.append(...(left ? [pills, mid, date] : [date, mid, pills])); box.append(row);
   }
-  if(!box.children.length) box.append(el('div', 'tlempty', open.length ? 'Nothing in these colours.' : 'Your timeline will appear as you speak.'));
+  if(!box.children.length) box.append(el('div', 'tlempty', 'Your timeline will appear as you speak.'));
 }
 
-/* ---- Home: the featured memory and the counters ----
-   Featured = one of the most important key points (tier 1), not from the last two days, rotating daily so the card is worth revisiting. */
-function pickFeatured(open){
-  const items = scoredKeypoints(open);
-  const pool = items.filter(i => i.tier === 1 && Date.now() - i.e.ts > 2 * 864e5);
-  const src = pool.length ? pool : items;
-  return src.length ? src[Math.floor(Date.now() / 864e5) % src.length] : null;
-}
-function excerpt(t, n){ t = t.replace(/\s+/g, ' ').trim(); if(t.length <= n) return t; const cut = t.slice(0, n), sp = cut.lastIndexOf(' '); return cut.slice(0, sp > n * .6 ? sp : n) + '…'; }
 function renderHome(){
   const open = entries.filter(e => isOpen(e) && e.text);
-  /* the last-recording card has three lives: nothing yet | transcribing (spinner and elapsed time) | the latest entry, with its photo if it has one */
-  const card = $('cardFeat'), img = $('featImg'), busy = !!rx, last = busy ? null : entries.slice().sort((a, b) => b.ts - a.ts)[0];
-  $('featBusy').hidden = !busy; img.hidden = true; card.classList.remove('hasimg');
-  if(busy){
-    card.className = 'lcard feat cobalt busy'; $('featLabel').textContent = 'Transcribing…';
-    $('featQuote').textContent = 'Turning your voice into text. You can keep using Alive.'; card.onclick = null; paintRx();
-  }else if(!last){
+  /* the last-recording card: nothing yet | processing (step, elapsed time, and whatever each step has found so far) | the latest entry */
+  const card = $('cardFeat'), img = $('featImg'), last = entries.slice().sort((a, b) => b.ts - a.ts)[0], proc = last && last.proc;
+  $('featBusy').hidden = !proc; img.hidden = true; card.classList.remove('hasimg');
+  if(!last){
     card.className = 'lcard feat sage'; $('featLabel').textContent = 'Last recording';
     $('featQuote').textContent = 'Your last recording will show up here.'; card.onclick = beginThink;
+  }else if(proc){
+    const n = Math.max(0, STAGES.indexOf(proc.stage));
+    card.className = 'lcard feat cobalt busy'; $('featLabel').textContent = 'Step ' + (n + 1) + ' of 5 · ' + STAGE_LABEL[proc.stage];
+    $('featQuote').textContent = last.summary || (last.points && last.points.length ? last.points.slice(0, 2).join(' · ') : last.text ? '“' + excerpt(last.text, 110) + '”' : 'Turning your voice into text. You can keep using Alive.');
+    card.onclick = () => openReader(last.id); paintRx();
   }else{
     const sealed = !isOpen(last), d = new Date(last.ts);
     card.className = 'lcard feat ' + (sealed ? 'plum' : TYPE_TONE[typeOf(last)]);
     $('featLabel').textContent = 'Last recording · ' + d.toLocaleDateString([], { day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) + (last.dur ? ' · ' + fmtClock(last.dur) : '');
-    $('featQuote').textContent = sealed ? 'Sealed as a time capsule until ' + fmtDay(last.capsule) + '.' : last.text ? '“' + excerpt(last.text, 130) + '”' : 'Not transcribed yet. Tap to open it.';
+    $('featQuote').textContent = sealed ? 'Sealed as a time capsule until ' + fmtDay(last.capsule) + '.' : last.summary ? last.summary : last.text ? '“' + excerpt(last.text, 130) + '”' : 'Not transcribed yet. Tap to open it.';
     card.onclick = () => sealed ? toast('Sealed until ' + fmtDay(last.capsule)) : openReader(last.id);
     if(!sealed && last.images && last.images[0]){ img.src = last.images[0]; img.hidden = false; card.classList.add('hasimg'); }
   }
-  // timeline preview: the latest memories that have key points, as dots on a spine with bars sized by importance
+  clearInterval(procTick); procTick = entries.some(x => x.proc) ? setInterval(paintRx, 500) : 0;
+  // timeline preview: the latest memories as dots on a spine, each with a bar
   const mini = $('tlMini'); mini.replaceChildren();
-  const items = scoredKeypoints(open), latest = [...new Set(open.filter(e => keypointsOf(e).length).sort((a, b) => b.ts - a.ts).slice(0, 5))];
-  latest.forEach((e, i) => {
-    const best = items.filter(it => it.e === e).sort((a, b) => a.tier - b.tier)[0], tone = TYPE_TONE[typeOf(e)];
-    const row = el('div', 'mrow ' + (i % 2 ? 'r' : 'l') + ' ' + tone);
-    row.append(el('b', 'mbar t' + (best ? best.tier : 3)), el('i', 'mdot'));
+  const latest = entries.filter(x => isOpen(x) && (x.text || x.proc)).sort((p, q) => q.ts - p.ts).slice(0, 5);
+  latest.forEach((en, i) => {
+    const row = el('div', 'mrow ' + (i % 2 ? 'r' : 'l') + ' ' + TYPE_TONE[typeOf(en)]);
+    row.append(el('b', 'mbar t2'), el('i', 'mdot'));
     mini.append(row);
   });
 }
@@ -2313,7 +2336,7 @@ if(document.fonts) document.fonts.ready.then(placeAll);
   entries = store.get('entries', []);
   settings = Object.assign(settings, store.get('settings', {}));
   renderEntries(); renderInsights(store.get('insights', null));
-  scheduleSync(0); announceCapsules();
+  scheduleSync(0); announceCapsules(); resumeProcessing();
 })();
 </script>
 </body>

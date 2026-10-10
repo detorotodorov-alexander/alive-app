@@ -59,3 +59,4 @@ The `.blk, .armed, .topbar` rule sits right after the scroller pass-through rule
 - **The memory web** (the "Your web" view and the Web/Timeline switch). The timeline is the only view. `buildWeb()` is still in the file (it returns early without `#web`); put `<div id="web"></div>` back in `#tlPage` and a switch button to restore it.
 - **Featured memory card**, replaced by **Last recording** (spinner and elapsed time while transcribing, then the entry). `pickFeatured()` is still in the file.
 - Warm brown/amber palette, replaced by blue/green with orange-yellow as the accent.
+- **Timeline filters and importance sizes** (type legend buttons, three pill sizes by importance). All pills are one size now; `scoredKeypoints` was deleted (git history has it).

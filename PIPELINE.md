@@ -73,3 +73,13 @@ Recomendación: **mundo de ejemplo + onboarding guiado**. Resuelve el problema e
    tu demo y lo ve cualquiera. Propuesta: *modo invitado* (todo local, sin sincronizar) para visitantes y *modo dueño* (sincronizado) solo para ti.
 2. **Umbrales.** 10 s / 12 palabras para la puerta, ¿bien? ¿Y la regla de importancia de la timeline?
 3. **Idioma.** El pipeline responde en el idioma de la entrada (probado en español). ¿Hace falta algo más (catalán)?
+
+## v3: five steps, card first
+The card is created and saved the moment you stop recording; each step then writes its result into the entry as soon as it has it
+(`proc.stage` says which one is running, and it is removed at the end). If the app is closed mid-way, it resumes on the next start.
+
+1. **Transcribe** (Whisper). 2. **Key points** (`extract`: verbatim quote + code check; under 10 s or 12 words it is kept as a note).
+3. **Find patterns** (`candidates` + `propose`: the model only proposes links). 4. **Review** (`review`: code keeps a link only if both quotes exist).
+5. **Summary** (`summarize`: two sentences at most; if it adds anything the transcript doesn't support, the verified key points are used).
+
+The timeline shows every open memory immediately (a pill with the first words, or the running step, until key points exist); it has no filters and no sizes.
