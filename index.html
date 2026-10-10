@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=overlays-content">
 <meta name="theme-color" content="#030a10">
 <title>Alive</title>
 <script src="config.js"></script>
@@ -25,7 +25,7 @@
   /* Galaxy S24 Ultra viewport: 412 x 915 CSS px (19.5:9). Fills a real phone, letterboxes elsewhere. */
   /* A fixed-size container: width and height are both explicit (JS refines them from the visual viewport), so nothing can stretch it. */
   #phone{
-    position:absolute; left:50%; top:50%; translate:-50% -50%; overflow:hidden; background:#000;
+    position:absolute; left:50%; top:50%; translate:-50% -50%; overflow:clip; overscroll-behavior:none; background:#000;   /* clip, not hidden: nothing can scroll it, not even focus() or scrollIntoView */
     --pw:min(100vw, calc(100svh * 412 / 915)); width:var(--pw); height:calc(var(--pw) * 915 / 412);
     container-type:size;
   }
@@ -489,14 +489,14 @@
   #phone[data-page="home"] #home.searching #cards3{opacity:.0;pointer-events:none}
 
   /* Home: universal search, at the very bottom */
-  #searchBar{position:absolute;left:5cqw;right:5cqw;bottom:calc(env(safe-area-inset-bottom) + 6cqw);height:14cqw;display:flex;align-items:center;gap:3cqw;
+  #searchBar{position:absolute;left:5cqw;right:5cqw;bottom:calc(env(safe-area-inset-bottom) + 6cqw + var(--kb, 0px));height:14cqw;display:flex;align-items:center;gap:3cqw;
     padding:0 4.4cqw;border-radius:99px;background:rgba(6,19,29,.78);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     box-shadow:0 2cqw 8cqw rgba(0,0,0,.45);z-index:6}
   #searchBar svg{flex:none;width:5.4cqw;height:5.4cqw;stroke:var(--calm);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
   #q{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:4.1cqw "Lora",Georgia,serif}
   #q::placeholder{color:var(--dim)}
   #qClear{flex:none;background:none;border:0;color:var(--dim);font-size:4.4cqw}
-  #searchRes{position:absolute;left:4cqw;right:4cqw;bottom:calc(env(safe-area-inset-bottom) + 23cqw);max-height:62cqh;overflow-y:auto;z-index:5;
+  #searchRes{position:absolute;left:4cqw;right:4cqw;bottom:calc(env(safe-area-inset-bottom) + 23cqw + var(--kb, 0px));max-height:62cqh;overflow-y:auto;z-index:5;
     border-radius:6cqw;background:rgba(5,15,24,.94);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     padding:3cqw;scrollbar-width:none}
   #searchRes::-webkit-scrollbar{display:none}
@@ -541,6 +541,7 @@
   .reccap{display:flex;flex-wrap:wrap;gap:2cqw;justify-content:center;margin-bottom:3cqw}
   .reccap button{background:rgba(6,19,29,.7);border:1px solid var(--line);color:#dcecef;border-radius:99px;padding:1.8cqw 3.8cqw;font-size:3.3cqw}
   .reccap button.on{border-color:rgba(140,190,235,.7);color:var(--calm)}
+  input,select,textarea{font-size:max(16px, 1em)}
   .reccap input{background:#0d1d29;border:1px solid var(--line);border-radius:3cqw;color:var(--ink);padding:1.4cqw 2.4cqw;font-size:3.3cqw;color-scheme:dark}
   .recnote{margin-top:10cqw}
   .recbtns{margin-top:auto;width:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:3cqw}
@@ -2330,10 +2331,21 @@ function liven(e, text){
   e.setAttribute('aria-label', e.textContent); letterIdx = 0;
   e.replaceChildren(...[...e.childNodes].map(splitNode)); e.classList.add('alive'); place(e);
 }
-{ const ph = $('phone');                                           // keep the phone exactly 412:915 inside whatever the browser gives us
-  const fit = () => { const v = window.visualViewport, w = v ? v.width : innerWidth, h = v ? v.height : innerHeight, pw = Math.floor(Math.min(w, h * 412 / 915));
-    ph.style.width = pw + 'px'; ph.style.height = Math.round(pw * 915 / 412) + 'px'; };
-  fit(); addEventListener('resize', fit); if(window.visualViewport) visualViewport.addEventListener('resize', fit); }
+{ const ph = $('phone');                                           // the phone is a fixed 412:915 box; only a real change of the window resizes it
+  const fit = () => { const pw = Math.floor(Math.min(innerWidth, innerHeight * 412 / 915)); ph.style.width = pw + 'px'; ph.style.height = Math.round(pw * 915 / 412) + 'px'; };
+  let lastW = innerWidth; fit();
+  addEventListener('resize', () => {                               // the on-screen keyboard shrinks the window: while typing, ignore it
+    const a = document.activeElement; if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && innerWidth === lastW) return;
+    lastW = innerWidth; fit();
+  });
+  document.addEventListener('focusout', () => setTimeout(() => { if(!document.activeElement || !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){ lastW = innerWidth; fit(); } }, 350));
+  addEventListener('orientationchange', () => setTimeout(() => { lastW = innerWidth; fit(); }, 250));
+  ph.addEventListener('scroll', () => { ph.scrollTop = 0; ph.scrollLeft = 0; });   // belt and braces
+  document.addEventListener('scroll', () => { scrollTo(0, 0); }, { passive:true });
+  // the keyboard covers the bottom of the screen: lift only the search bar above it, never the phone
+  if(window.visualViewport){ const vv = visualViewport, lift = () => { const kb = Math.max(0, innerHeight - vv.height - vv.offsetTop); ph.style.setProperty('--kb', kb + 'px'); };
+    vv.addEventListener('resize', lift); vv.addEventListener('scroll', lift); }
+}
 new ResizeObserver(placeAll).observe($('phone'));
 if(document.fonts) document.fonts.ready.then(placeAll);
 
